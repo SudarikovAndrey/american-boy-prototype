@@ -191,7 +191,8 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 .mbtns{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .mbtns button{flex:1;padding:9px 10px;font-size:15px;border-radius:10px}
 .slots{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}
-.slot{width:44px;height:44px;border:2px dashed #b9ab8c;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#fff8e8}
+.slot small{position:absolute;right:2px;bottom:1px;font-size:9px;font-weight:800;color:#6b5f52}
+.slot{position:relative;width:44px;height:44px;border:2px dashed #b9ab8c;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#fff8e8}
 .slot.f{border-style:solid;border-color:var(--gold)}
 .qty{display:flex;align-items:center;gap:4px}
 .qty button{padding:4px 10px;font-size:15px;background:#8a7e6e;box-shadow:0 2px 0 #5f554a}
@@ -275,6 +276,7 @@ const CFG = {
   SHOP_SOFT:[{mult:1,hard:3},{mult:3,hard:8},{mult:8,hard:20}], // нал за харду: сумма = mult × средняя цена точки лучшего открытого района // цены: сверхурочные, откуп от полиции, такси, место в контейнере, район ($ за 1💎)
   START_CASH: 250,
   PARCEL_SLOTS: 6,
+  PARCEL:{unitsPerSlot:[1,2,3,4,6,8,10], dayReward:[50,70,90,120,150,200,320]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
   ZONES: [
     // day — день бесплатного открытия; price — цена открытия в день 1, падает линейно до нуля к day
     {name:'Брайтон-Бич', from:1,  to:13, day:1, price:0,    color:'#6aa84f'},
@@ -617,6 +619,14 @@ function lbPlace(){return lbRows().findIndex(r=>r.you)+1;}
 const LB_REWARD=[10,5,3,2,2,1,1,1,1,1]; // 💎 за место в конце недели
 const LB_AVA=['🧔','👨‍🦲','🕶','🎩','🎧','🧑‍🔧','👨‍🍳','👨‍🦰','🌮'];
 function lbTimeLeft(){const d=CFG.DAYS-S.day;if(CFG.REAL_DAYS){const now=new Date(),mid=new Date(now);mid.setHours(24,0,0,0);const h=Math.floor((mid-now)/36e5),m=Math.floor(((mid-now)%36e5)/6e4);return d>0?`${d} дн ${h} ч`:`${h} ч ${m} м`;}return d>0?`${d} дн`:'последний день';}
+function slotUnits(){return CFG.PARCEL.unitsPerSlot[Math.min(CFG.DAYS,Math.max(1,S.day))-1];}
+function dayReward(){return CFG.PARCEL.dayReward[Math.min(CFG.DAYS,Math.max(1,S.day))-1];}
+function baseOfGood(g){for(const b of CFG.GOODS.filter(x=>goodTier(x)===1)){let cur=b;for(let k=0;k<3&&cur;k++){if(cur.id===g.id)return b;cur=cur.next?good(cur.next):null;}}return g;}
+function possibleGoods(){return CFG.GOODS.filter(g=>{const b=baseOfGood(g);return S.opened[b.zone]&&S.day>=CFG.TIER_DAY[goodTier(g)-1];});} // что в принципе можно везти сегодня
+function bestPtsToday(){return Math.max(1,...possibleGoods().map(g=>g.pts));}
+function parcelPts(box){const v=CFG.GOODS.reduce((a,g)=>a+(box[g.id]||0)*g.pts,0);return Math.round(v/(CFG.PARCEL_SLOTS*bestPtsToday())*dayReward());}
+function parcelAutoBox(share){const box={};CFG.GOODS.forEach(g=>box[g.id]=0);const k=slotUnits(),N=Math.max(1,Math.round(slots()*(share==null?1:share)));let used=0;
+  for(const g of CFG.GOODS.slice().sort((x,y)=>y.pts-x.pts)){while(used<N&&(box[g.id]+1)*k<=stock(g.id)){box[g.id]++;used++;}}return box;}
 function bagCount(){return Object.values(S.bag||{}).reduce((a,b)=>a+b,0);}
 function bagPts(){return CFG.GOODS.reduce((a,g)=>a+(S.bag[g.id]||0)*g.pts,0);}
 function goodTier(g){return g.tier||1;}
@@ -1111,35 +1121,36 @@ async function shipClick(){
 async function parcel(forced){
   if(S.finished)return;
   if(S.parcelSent){toast('Поставка сегодня уже ушла. Следующая — завтра.');return;}
-  const total=CFG.GOODS.reduce((a,g)=>a+stock(g.id),0);
-  if(total<=0){if(!forced)toast('В точках пусто — отправлять нечего.');return;}
-  const box={}; CFG.GOODS.forEach(g=>box[g.id]=0);
-  const used=()=>Object.values(box).reduce((a,b)=>a+b,0), pts=()=>CFG.GOODS.reduce((a,g)=>a+box[g.id]*g.pts,0);
-  const autofill=()=>{CFG.GOODS.forEach(g=>box[g.id]=0);const gs=CFG.GOODS.slice().sort((x,y)=>y.pts-x.pts);for(const g of gs){while(used()<slots()&&box[g.id]<stock(g.id))box[g.id]++;}};
+  const k=slotUnits(),R=dayReward(),best=CFG.GOODS.slice().sort((x,y)=>y.pts-x.pts).find(g=>possibleGoods().includes(g));
+  const total=CFG.GOODS.reduce((a,g)=>a+Math.floor(stock(g.id)/k),0);
+  if(total<=0){if(!forced)toast(`В точках нет товара на целое место: нужно по ${k} шт одного товара.`);return;}
+  let box={}; CFG.GOODS.forEach(g=>box[g.id]=0);
+  const used=()=>Object.values(box).reduce((a,b)=>a+b,0), pts=()=>parcelPts(box);
+  const autofill=()=>{box=parcelAutoBox();};
   if(forced)autofill();
   const draw=()=>{
-    const N=slots(),n=used(),p=pts();
-    let sl='';CFG.GOODS.forEach(g=>{for(let k=0;k<box[g.id];k++)sl+=`<div class="slot f">${g.icon}</div>`;});
-    for(let k=n;k<N;k++)sl+='<div class="slot"></div>';
-    const canSlot=S.extraSlots<CFG.EXTRA_SLOT.perDay, sp=slotPrice(), hp=CFG.HARD.slot*Math.pow(2,S.extraSlots||0);
+    const N=slots(),n=used(),p=pts(),share=Math.round(p/R*100);
+    let sl='';CFG.GOODS.forEach(g=>{for(let i=0;i<box[g.id];i++)sl+=`<div class="slot f">${g.icon}<small>×${k}</small></div>`;});
+    for(let i=n;i<N;i++)sl+=`<div class="slot"><small>×${k}</small></div>`;
+    const canSlot=S.extraSlots<CFG.EXTRA_SLOT.perDay, hp=CFG.HARD.slot*Math.pow(2,S.extraSlots||0);
     const gs=CFG.GOODS.filter(g=>stock(g.id)>0||box[g.id]>0);
-    $('card').innerHTML=`<h2>📦 Поставка в Союз <small>${forced?'фура уходит':'1 в день'} · ${N} мест</small>${helpBtn('Одна поставка в день, до полуночи. Дорогой товар даёт больше очков за место. Не отправишь сам — в полночь фура заберёт самое дорогое. Что не влезло в фуру за неделю — сгорает.')}</h2>
+    $('card').innerHTML=`<h2>📦 Поставка в Союз <small>${forced?'фура уходит':'1 в день'} · ${N} мест по ${k} шт</small>${helpBtn(`Одна поставка в день. Место в фуре вмещает ${k} шт одного товара, с каждым днём больше. Очки — доля от лучшей возможной поставки дня (${CFG.PARCEL_SLOTS} мест лучшего товара = ${R} очков); лишние места дают сверх того. Не отправишь сам — в полночь фура заберёт самое дорогое. Остатки за неделю сгорают.`)}</h2>
       ${hintHtml('parcel','Поставка — кнопка 📦 в доке, одна в день, из товара твоих точек. Что отправишь, то уже не продашь. Дорогой товар даёт больше очков за место. Очки — это билет Джонни.')}
       ${forced?'<p class="t">День кончился. Фура забирает то, что положишь сейчас.</p>':''}
-      <div class="slots">${sl}</div>`+
-      gs.map(g=>`<div class="row"><span class="n">${g.icon} ${g.name} <small>${g.pts} очк./шт · в точках ${stock(g.id)}</small></span>
-        <div class="qty"><button data-g="${g.id}" data-d="-1" ${box[g.id]<=0?'disabled':''}>−</button><b>${box[g.id]}</b><button data-g="${g.id}" data-d="1" ${n>=N||stock(g.id)-box[g.id]<=0?'disabled':''}>+</button></div></div>`).join('')+
-      `<div class="row"><span class="n">Очки за поставку</span><span class="v">${p}</span></div>
-      ${canSlot?`<div class="row"><span class="n">Ещё одно место в контейнере<small>каждое следующее сегодня вдвое дороже · осталось ${CFG.EXTRA_SLOT.perDay-S.extraSlots}</small></span><span class="qty"><button class="sm hard" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`:''}
-      <div class="mbtns"><button class="sec sm" id="mAuto">Самое дорогое</button><button class="ok" id="mSend" ${n<=0?'disabled':''}>Отправить</button><button class="sec" id="mNo">${forced?'Не отправлять':'Позже'}</button></div>`;
+      <div class="slots">${sl}</div>
+      <div class="row" style="border:0;padding:4px 0"><span class="n">Лучший товар дня: ${best?best.icon+' '+best.name:'—'}<small>полная фура из него — ${R} очков</small></span><span class="v">${p} <small>из ${R}</small></span></div>
+      <div class="bar"><i style="width:${Math.min(100,share)}%"></i></div>`+
+      gs.map(g=>{const can=Math.floor(stock(g.id)/k);return `<div class="row"><span class="n">${g.icon} ${g.name} <small>${g.pts} очк./шт · в точках ${stock(g.id)} · хватит на ${can} ${can===1?'место':'мест'}</small></span>
+        <div class="qty"><button data-g="${g.id}" data-d="-1" ${box[g.id]<=0?'disabled':''}>−</button><b>${box[g.id]}</b><button data-g="${g.id}" data-d="1" ${n>=N||box[g.id]>=can?'disabled':''}>+</button></div></div>`;}).join('')+
+      `${canSlot?`<div class="row"><span class="n">Ещё одно место в контейнере<small>каждое следующее сегодня вдвое дороже · осталось ${CFG.EXTRA_SLOT.perDay-S.extraSlots}</small></span><span class="qty"><button class="sm hard" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`:''}
+      <div class="mbtns"><button class="sec sm" id="mAuto">Самое дорогое</button><button class="ok" id="mSend" ${n<=0?'disabled':''}>Отправить · ${p} очк.</button><button class="sec" id="mNo">${forced?'Не отправлять':'Позже'}</button></div>`;
     $('card').querySelectorAll('.qty button').forEach(b=>b.onclick=()=>{const g=b.dataset.g;box[g]=Math.max(0,box[g]+ +b.dataset.d);draw();});
     $('mAuto').onclick=()=>{autofill();draw();};
     const mh=$('mSlotH'); if(mh)mh.onclick=()=>{if(spendHard(hp)){track('slot_buy',{cost:hp,cur:'hard'});S.extraSlots++;log(`Докупил место в контейнере за 💎 ${hp}.`);draw();render();}};
-    $('mSend').onclick=()=>{const L0=level(),had=S.pts>=CFG.TICKET_PTS,pBefore=S.pts;CFG.GOODS.forEach(g=>{if(box[g.id])fly(g.icon,AT.card(),AT.hub(),Math.min(box[g.id],4),{pulse:'bHub'});});CFG.GOODS.forEach(g=>takeGoods(g.id,box[g.id]));S.pts+=p;S.xp+=p;S.parcelSent=true;S.stat.parcels++;S.dstat.pts+=p;qProg('parcel',p,true);
-      track('parcel',{units:n,pts:p,slots:N,extra:S.extraSlots,forced:!!forced,box});log(`📦 Поставка ушла: ${n} шт, +${p} очков.`);closeModal(1);if(S.day>=CFG.DAYS)setTimeout(()=>toast('🏁 Последняя поставка недели ушла. Остатки товара, нал и точки пойдут в зачёт — жми «итоги» в доке.',6000),900);
+    $('mSend').onclick=()=>{const L0=level(),pBefore=S.pts,units=n*k;CFG.GOODS.forEach(g=>{if(box[g.id])fly(g.icon,AT.card(),AT.hub(),Math.min(box[g.id],4),{pulse:'bHub'});});CFG.GOODS.forEach(g=>takeGoods(g.id,box[g.id]*k));S.pts+=p;S.xp+=p;S.parcelSent=true;S.stat.parcels++;S.dstat.pts+=p;qProg('parcel',p,true);
+      track('parcel',{units,slotsUsed:n,pts:p,max:R,slots:N,k,extra:S.extraSlots,forced:!!forced,box});log(`📦 Поставка ушла: ${units} шт, +${p} очков.`);closeModal(1);if(S.day>=CFG.DAYS)setTimeout(()=>toast('🏁 Последняя поставка недели ушла. Остатки товара, нал и точки пойдут в зачёт — жми «итоги» в доке.',6000),900);
       const L=level();
-      (async()=>{const rm=CFG.MILESTONES.filter(m=>S.pts-p<m.pts&&S.pts>=m.pts&&m.pts!==CFG.TICKET_PTS);for(const m of rm)await modal(`<h2>🏆 ${m.name}!</h2><p class="t">${S.pts} очков — рубеж взят. Награда: <b>${m.reward}</b>.</p>`,[{t:'Красава',v:1,cls:'ok'}]);
-        {const before=CFG.MILESTONES.filter(m=>pBefore>=m.pts).length;for(const m of CFG.MILESTONES.slice(before).filter(m=>S.pts>=m.pts))await milestoneModal(m);}
+      (async()=>{const before=CFG.MILESTONES.filter(m=>pBefore>=m.pts).length;for(const m of CFG.MILESTONES.slice(before).filter(m=>S.pts>=m.pts))await milestoneModal(m);
         if(L>L0)await modal(`<h2>🧢 Джонни — уровень ${L}!</h2><p class="t">Новый перк: <b>${CFG.PERKS[L]||'—'}</b></p>`,[{t:'Красава',v:1,cls:'ok'}]);})();};
     $('mNo').onclick=()=>closeModal(0);
   };
@@ -1250,7 +1261,7 @@ async function finish(){
     <p class="t" style="text-align:center">${ticket?`Поставки налажены, билет в кармане. Уровень ${L}, принят в банду.`:`Не хватило ${CFG.TICKET_PTS-S.pts} очков до билета. Джонни ждёт следующего шанса.`}</p>
     <div class="fintally">${lines.map((l,i)=>`<div class="row finrow" data-i="${i}"><span class="n">${l.ic} ${l.k}</span><b class="v" data-v="${l.v}">0</b></div>`).join('')}
       <div class="row fintot"><span class="n">Итого очков</span><b class="v" id="finTot" data-v="${S.pts}">0</b></div>
-      ${B.goodsUnits?`<div class="row finlost"><span class="n">🧳 Не влезло в фуру: ${B.goodsUnits} шт<small>это ${B.goodsLost} очков, которые сгорели. Больше мест в фуре — больше очков.</small></span><b class="v">—</b></div>`:''}</div>
+      ${B.goodsUnits?`<div class="row finlost"><span class="n">🧳 Не влезло в фуру: ${B.goodsUnits} шт товара сгорело<small>Больше мест в фуре — больше очков.</small></span><b class="v">—</b></div>`:''}</div>
     <div class="ms3">${CFG.MILESTONES.map((m,i)=>`<div class="msc ${S.pts>=m.pts?'done':''}"><span class="msi">${['🎫','🎖','🏆'][i]}</span><b>${m.pts}</b><span class="msn">${m.name}</span><i>${S.pts>=m.pts?'✓':'🔒'}</i></div>`).join('')}</div>
     <div class="finlb"><div class="lbcols"><span>Место</span><span>Бруклин · итог</span><span>Награда</span></div>${rows.slice(0,3).map((r,i)=>`<div class="lbrow ${r.you?'me':'p'+(i+1)}"><b class="lbp">${i+1}</b><span class="lbav">${r.you?'🧢':LB_AVA[LB_NAMES.indexOf(r.n)]||'🙂'}</span><span class="lbn">${r.n}<small>🎫 ${r.pts}</small></span><span class="lbr">💎 ${LB_REWARD[i]||0}</span></div>`).join('')}${place>3?`<div class="lbrow me"><b class="lbp">${place}</b><span class="lbav">🧢</span><span class="lbn">${S.player||'Ты'}<small>🎫 ${S.pts}</small></span><span class="lbr">💎 ${LB_REWARD[place-1]||0}</span></div>`:''}</div>
     <div class="row" style="border:0"><span class="n">🎟 Пропуск ур. ${bpLevel()}${S.bp.paid?' · куплен':''} · ⏱ ${minTxt(S.playMs)} за неделю · ${S.laps} кругов</span></div>
@@ -1276,7 +1287,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v10.2. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v11.0. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
