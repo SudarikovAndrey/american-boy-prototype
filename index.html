@@ -84,6 +84,29 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 #modal{position:fixed;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center;z-index:30}
 @media(min-width:600px){#modal{align-items:center;padding:12px}}
 #modal[hidden]{display:none}
+#modal.mid{align-items:center;padding:12px}
+.card.bare{background:transparent;box-shadow:none;padding:0;max-width:400px;overflow:visible;border-radius:0}
+.shop{background:var(--cream);border-radius:18px;overflow:hidden;color:var(--ink);box-shadow:0 6px 0 #0005}
+.shop .banner{display:block;position:relative;background:linear-gradient(180deg,#ebe8e1,#cfc9be);padding:16px 18px 14px;min-height:100px}
+.shop .banner small{display:block;letter-spacing:.22em;font-size:11px;font-weight:700;color:#4a443c;text-transform:uppercase;padding-right:90px}
+.shop .banner b{display:block;font:900 38px/1 Impact,'Arial Black','Helvetica Neue',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#2a221c;margin-top:6px;padding-right:90px;word-break:break-word}
+.shop .banner .big{position:absolute;right:14px;top:14px;font-size:66px;line-height:1;filter:drop-shadow(0 5px 6px #0007)}
+.shop .srow{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}
+.shop .ico{width:50px;height:50px;border-radius:50%;background:#2a221c;border:3px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:24px;flex:0 0 auto}
+.shop .nm{flex:1;font-size:19px;font-weight:700}
+.shop .lvl{background:var(--green);color:#fff;font:900 24px/1 Impact,'Arial Black',sans-serif;padding:12px 20px;border-radius:48% 52% 46% 54%/58% 60% 40% 42%;min-width:74px;text-align:center}
+.shop .box{background:#fff8e6;border-radius:12px;margin:0 16px 10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:16px;gap:10px}
+.shop .box b{font-size:19px;white-space:nowrap}.shop .box .bar{flex:1;margin:0 10px}
+.shop .two{display:flex;gap:10px;padding:0 16px 16px}
+.shop .up{flex:1;background:#fff8e6;border-radius:12px;padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;text-align:center;min-width:0}
+.shop .up .uic{font-size:28px;line-height:1.1}.shop .up .lab{font-size:13px;color:#4a443c}
+.shop .up .nums{font:900 28px/1 Impact,'Arial Black',sans-serif;color:#2a221c;margin:6px 0 8px;white-space:nowrap}.shop .up .nums b{color:var(--green)}.shop .up .nums i{font-style:normal;color:var(--green);font-size:18px;margin:0 5px}
+.shop .up button:not(.qm),.shop .wide button{background:#1f3f7a;box-shadow:0 3px 0 #142a52;border-radius:8px;padding:9px 8px;font-size:15px}.shop .up button:not(.qm){width:100%}
+.shop .up .qm,.shop .banner .qm{position:absolute;top:8px;right:8px;margin:0;width:22px;height:22px;padding:0;border-radius:50%;background:#0002;color:var(--ink);box-shadow:none;font-size:12px;line-height:22px}.shop .banner .qm{top:auto;bottom:10px;right:14px}
+.shop .wide{margin:0 16px 16px;background:#fff8e6;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.shop .wide .n{flex:1}.shop .wide small{display:block;color:#6b5f52;font-size:12px}
+.shop .buy{margin:0 16px 16px;width:calc(100% - 32px);padding:14px;font-size:18px}
+.xclose{display:block;margin:14px auto 0;width:64px;height:60px;border-radius:16px;background:var(--cream);color:var(--ink);font-size:24px;box-shadow:0 4px 0 #0005;padding:0}
 @keyframes cardIn{from{transform:translateY(36px);opacity:0}to{transform:none;opacity:1}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
@@ -639,7 +662,8 @@ function modal(html,btns,opt){return new Promise(res=>{
 function openCustom(){return new Promise(res=>{modalResolve=res;modalSticky=false;modalSeq++;$('modal').classList.remove('closing');$('modal').hidden=false;});}
 let modalSeq=0;
 function closeModal(v){holdStop();hideTip();const r=modalResolve;modalResolve=null;const my=++modalSeq;const m=$('modal');
-  if(m.hidden||CFG.SPEED>=100){m.hidden=true;}else{m.classList.add('closing');setTimeout(()=>{if(modalSeq===my){m.hidden=true;m.classList.remove('closing');}},150);}
+  const reset=()=>{m.hidden=true;m.classList.remove('closing');m.classList.remove('mid');$('card').className='card';};
+  if(m.hidden||CFG.SPEED>=100){reset();}else{m.classList.add('closing');setTimeout(()=>{if(modalSeq===my)reset();},150);}
   if(r)r(v);}
 // кнопка с автоповтором при удержании (MButton_Hold)
 // окно перерисовывается после каждой покупки, кнопка пересоздаётся — поэтому отпускание ловим на документе, а не на кнопке
@@ -744,40 +768,40 @@ async function land(t){
 }
 
 // ---------- окно ларька (KioskWindow) ----------
+const CAT_NAMES={gum:'Сладости',cola:'Напитки',tape:'Медиа',jeans:'Одежда',sneak:'Обувь',vcr:'Техника'};
+function shopFrame(t,inner){ // компоновка окна точки/бизнеса как в коре: баннер, строка категории с уровнем, блоки
+  const g=t.type==='kiosk'?good(t.good):null, title=t.type==='kiosk'?pointName(t):bizName(t), sub=t.type==='kiosk'?`${CAT_NAMES[t.base||'gum']||'Товар'} · ${g.name}`:`${tname(t)} · ${CFG.ZONES[t.zone].name}`;
+  $('modal').classList.add('mid'); $('card').className='card bare';
+  $('card').innerHTML=`<div class="shop"><div class="banner"><small>${sub}</small><b>${title}</b><span class="big">${g?g.icon:'🏢'}</span></div>${inner}</div><button class="xclose" id="xNo">✕</button>`;
+  $('xNo').onclick=()=>closeModal();
+}
 async function kioskWindow(t){
   const draw=()=>{
-    const g=good(t.good);
+    const g=good(t.good), margin=Math.max(0,sellPrice(t.good)-buyPrice(t.good));
     if(!t.owner){
-      $('card').innerHTML=`<h2>${pointName(t)} <small>${tname(t).toLowerCase()}</small>${helpBtn('Товар точки продаётся при проходе старта. Купи точку и закупись на Costco.')}</h2>
-        ${hintHtml('kiosk','Точка зарабатывает продажами: её товар продаётся, когда ты проходишь старт. Купи её, потом закупись на Costco.')}
-        <div class="row"><span class="n">Слот товара<small>продаётся на старте, при каждом круге</small></span><span class="v">${g.icon} ${g.name}</span></div>
-        <div class="row"><span class="n">Продажи за круг<small>главный доход точки: товар × цена, когда проходишь старт</small></span><span class="v">${CFG.KIOSK.sales[0][0]+perk().sales} шт</span></div>
-        <div class="row"><span class="n">Сбор за проход<small>копейки, ради него точку не берут</small></span><span class="v">$${Math.max(1,Math.round(t.price*CFG.KIOSK.feePct*perk().fee))}</span></div>
-        <div class="row"><span class="n">Вместимость</span><span class="v">${CFG.KIOSK.capacity[0][0]} шт</span></div>
-        <div class="mbtns"><button class="ok" id="kBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button><button class="sec" id="kNo">Назад</button></div>`;
+      hintHtml('kiosk','Точка зарабатывает продажами: её товар продаётся, когда ты проходишь старт. Купи её, потом закупись на Costco.');
+      shopFrame(t,`<div class="srow"><span class="ico">${g.icon}</span><span class="nm">${CAT_NAMES[t.base||'gum']||'Товар'}</span>${helpBtn('Товар точки продаётся при проходе старта. Купи точку и закупись на Costco.')}</div>
+        <div class="box"><span>Прибыль за круг<br><small style="color:#6b5f52">${CFG.KIOSK.sales[0][0]+perk().sales} шт × $${margin}</small></span><b>$${(CFG.KIOSK.sales[0][0]+perk().sales)*margin}</b></div>
+        <div class="box"><span>Вместимость</span><b>${CFG.KIOSK.capacity[0][0]} шт</b></div>
+        <button class="ok buy" id="kBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button>`);
       $('kBuy').onclick=()=>{track('buy_point',{tile:t.i,good:t.good,price:t.price});fly('💵',AT.cash(),AT.tile(t.i),flyN(t.price));S.cash-=t.price;t.owner='you';t.capLvl=1;t.salesLvl=1;t.goods=0;S.stat.bought++;S.dstat.bought++;qProg('buy',1);log(`Купил ${name(t)} за $${t.price}.`);toast('Твоя точка! Закупи товар на Costco.');render();draw();};
-      $('kNo').onclick=()=>closeModal();
     } else {
-      const cMax=t.capLvl>=capTab(t).length, sMax=t.salesLvl>=salTab(t).length, pc=Math.round(t.goods/cap(t)*100);
-      $('card').innerHTML=`<h2>${pointName(t)} <small>${tname(t).toLowerCase()} · ур. ${klevel(t)}</small>${helpBtn('Вместимость — сколько товара влезает. Продажи — сколько уходит за круг. Оба на максимуме — точку можно расширить до премиум-товара.')}</h2>
-        ${hintHtml('upgrade','Два стата: Вместимость — сколько товара влезает, Продажи — сколько уходит за круг. Когда оба на максимуме, точку можно расширить.')}
-        ${evolveState(t)==='ok'?hintHtml('evolve','Точка готова к расширению: станет Магазином и перейдёт на премиум-товар своей категории, дороже и с большими очками. Вместимость и продажи сохранятся, сверху откроются новые уровни.'):''}
-        <div class="row"><span class="n">Слот: ${g.icon} ${g.name}<small>продаётся по $${sellPrice(t.good)} за шт</small></span><span class="v">${t.goods}/${cap(t)} <small>${pc}%</small></span></div>
-        <div class="bar"><i style="width:${pc}%"></i></div>
-        <div class="row"><span class="n">Сбор за проход</span><span class="v">$${fee(t)}</span></div>
-        <div class="row"><span class="n">Выручка за круг при полной точке</span><span class="v">$${sales(t)*sellPrice(t.good)}</span></div>
-        <div class="row"><span class="n">Вместимость<small>ур. ${t.capLvl}${cMax?' · макс':` → ${capTab(t)[t.capLvl]} шт`}</small></span><span class="v">${cap(t)} шт</span>
-          <button class="sm ok" id="kCap" ${cMax||S.cash<capCost(t)?'disabled':''}>${cMax?'Макс':'$'+capCost(t)}</button></div>
-        <div class="row"><span class="n">Продажи за круг<small>ур. ${t.salesLvl}${sMax?' · макс':` → ${salTab(t)[t.salesLvl]+perk().sales} шт`}</small></span><span class="v">${sales(t)} шт</span>
-          <button class="sm ok" id="kSal" ${sMax||S.cash<salesCost(t)?'disabled':''}>${sMax?'Макс':'$'+salesCost(t)}</button></div>
-        ${(()=>{const es=evolveState(t);if(es==='max')return '';const nt=evolveTarget(t),nm=CFG.TIER_NAMES.kiosk[nt-1];const ng=good(good(t.good).next||t.good);
-          return `<div class="row"><span class="n">Расширить до «${(CFG.POINT_NAMES[t.base||'gum']||[])[nt-1]||nm}»<small>${es==='stats'?'сначала прокачай оба стата до максимума':es.startsWith('locked')?'откроется в день '+es.split(':')[1]:`будет торговать ${ng.icon} ${ng.name} ($${ng.sell}/шт)`}</small></span>
-          <button class="sm" id="kEvo" ${es!=='ok'||S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;})()}
-        <div class="mbtns"><button class="sec" id="kNo">Закрыть</button></div>`;
+      const cMax=t.capLvl>=capTab(t).length, sMax=t.salesLvl>=salTab(t).length, pc=Math.round(t.goods/cap(t)*100), es=evolveState(t);
+      hintHtml('upgrade','Два стата: Вместимость — сколько товара влезает, Оборот — сколько уходит за круг. Когда оба на максимуме, точку можно расширить.');
+      if(es==='ok')hintHtml('evolve','Точка готова к расширению: станет Магазином и перейдёт на премиум-товар своей категории, дороже и с большими очками.');
+      const evoRow=(()=>{if(es==='max')return '';const nt=evolveTarget(t),nm=(CFG.POINT_NAMES[t.base||'gum']||[])[nt-1]||CFG.TIER_NAMES.kiosk[nt-1],ng=good(good(t.good).next||t.good);
+        if(es==='ok')return `<div class="wide"><span class="n">Расширить до «${nm}»<small>${ng.icon} ${ng.name} · $${ng.sell}/шт</small></span><button id="kEvo" ${S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;
+        if(cMax&&sMax)return `<div class="wide"><span class="n">Расширение до «${nm}»<small>откроется в день ${es.split(':')[1]}</small></span></div>`;return '';})();
+      shopFrame(t,`<div class="srow"><span class="ico">${g.icon}</span><span class="nm">${CAT_NAMES[t.base||'gum']||'Товар'}</span><span class="lvl">${klevel(t)}</span></div>
+        <div class="box"><span>Товар</span><span class="bar"><i style="width:${pc}%"></i></span><b>${t.goods}/${cap(t)}</b></div>
+        <div class="box"><span>Прибыль за круг</span><b>$${sales(t)*margin}</b></div>
+        <div class="two">
+          <div class="up">${helpBtn('Вместимость — сколько товара влезает в точку между визитами на Costco.')}<div class="uic">▦</div><div class="lab">Вместимость</div><div class="nums">${cap(t)}${cMax?'':` <i>→</i> <b>${capTab(t)[t.capLvl]}</b>`}</div><button id="kCap" ${cMax||S.cash<capCost(t)?'disabled':''}>${cMax?'Макс':'$'+capCost(t)}</button></div>
+          <div class="up">${helpBtn('Оборот — сколько штук продаётся за круг при проходе старта.')}<div class="uic">⟳</div><div class="lab">Оборот</div><div class="nums">${sales(t)}${sMax?'':` <i>→</i> <b>${salTab(t)[t.salesLvl]+perk().sales}</b>`}</div><button id="kSal" ${sMax||S.cash<salesCost(t)?'disabled':''}>${sMax?'Макс':'$'+salesCost(t)}</button></div>
+        </div>${evoRow}`);
       const evo=$('kEvo'); if(evo)evo.onclick=()=>{fly('💵',AT.cash(),AT.tile(t.i),8);evolve(t);render();draw();};
       $('kCap').onclick=()=>{track('upgrade',{tile:t.i,stat:'cap',lvl:t.capLvl+1,cost:capCost(t)});fly('💵',AT.cash(),AT.card(),flyN(capCost(t)));S.cash-=capCost(t);t.capLvl++;qProg('upg',1);log(`${name(t)}: вместимость ур. ${t.capLvl}.`);render();draw();};
       $('kSal').onclick=()=>{track('upgrade',{tile:t.i,stat:'sales',lvl:t.salesLvl+1,cost:salesCost(t)});fly('💵',AT.cash(),AT.card(),flyN(salesCost(t)));S.cash-=salesCost(t);t.salesLvl++;qProg('upg',1);log(`${name(t)}: продажи ур. ${t.salesLvl}.`);render();draw();};
-      $('kNo').onclick=()=>closeModal();
     }
   };
   draw(); await openCustom(); save(); render();
@@ -785,26 +809,24 @@ async function kioskWindow(t){
 async function bizWindow(t){
   const draw=()=>{
     if(!t.owner){
-      $('card').innerHTML=`<h2>🏢 ${bizName(t)} ${helpBtn('Сбор при каждом проходе, при остановке — втройне. Прокачка поднимает сбор.')}</h2>
-        <p>Товар не нужен. Платит при каждом проходе мимо, а если остановишься — снимаешь кассу ×${CFG.BIZ.landMult}.</p>
-        <div class="row"><span class="n">За проход</span><span class="v">$${Math.round(t.price*CFG.BIZ.feePct*perk().fee)}</span></div>
-        <div class="row"><span class="n">За остановку</span><span class="v">$${Math.round(t.price*CFG.BIZ.feePct*perk().fee)*CFG.BIZ.landMult}</span></div>
-        <div class="mbtns"><button class="ok" id="bBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button><button class="sec" id="bNo">Назад</button></div>`;
+      const f=Math.round(t.price*CFG.BIZ.feePct*perk().fee);
+      shopFrame(t,`<div class="srow"><span class="ico">🏢</span><span class="nm">Бизнес</span>${helpBtn('Сбор при каждом проходе, при остановке — втройне. Прокачка поднимает сбор.')}</div>
+        <div class="box"><span>За проход</span><b>$${f}</b></div>
+        <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${f*CFG.BIZ.landMult}</b></div>
+        <button class="ok buy" id="bBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button>`);
       $('bBuy').onclick=()=>{track('buy_biz',{tile:t.i,price:t.price});fly('💵',AT.cash(),AT.tile(t.i),flyN(t.price));S.cash-=t.price;t.owner='you';t.level=1;S.stat.bought++;S.dstat.bought++;qProg('buy',1);log(`Купил ${name(t)} за $${t.price}.`);toast('Твой бизнес!');render();draw();};
-      $('bNo').onclick=()=>closeModal();
     } else {
       const max=t.level>=CFG.BIZ.maxLevel, cost=bizUpCost(t), es=evolveState(t), nt=evolveTarget(t);
-      $('card').innerHTML=`<h2>🏢 ${bizName(t)} <small>${tname(t).toLowerCase()} · ур. ${t.level}/${CFG.BIZ.maxLevel}</small>${helpBtn('Сбор при проходе, при остановке — втройне. Уровень поднимает сбор в 1,6 раза. На максимуме — расширение до Сети.')}</h2>
-        <div class="row"><span class="n">За проход</span><span class="v">$${fee(t)}</span></div>
-        <div class="row"><span class="n">За остановку<small>×${CFG.BIZ.landMult}</small></span><span class="v">$${fee(t)*CFG.BIZ.landMult}</span></div>
-        <div class="row"><span class="n">Уровень<small>${max?'максимум':`сбор → $${Math.round(fee(t)*CFG.BIZ.feeLevelMult)} за проход · окупится за ${CFG.BIZ.paybackLaps} кругов`}</small></span><span class="v">${t.level}</span>
-          <button class="sm ok" id="bUp" ${max||S.cash<cost?'disabled':''}>${max?'Макс':'$'+cost}</button></div>
-        ${es==='max'?'':`<div class="row"><span class="n">Расширить до «${CFG.TIER_NAMES.biz[nt-1]}»<small>${es==='stats'?'сначала максимальный уровень':es.startsWith('locked')?'откроется в день '+es.split(':')[1]:'сбор пересчитается от новой базы, уровень сохранится'}</small></span>
-          <button class="sm" id="bEvo" ${es!=='ok'||S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`}
-        <div class="mbtns"><button class="sec" id="bNo">Закрыть</button></div>`;
+      const evoCard=es==='max'?'':`<div class="up">${helpBtn('Расширение до Сети: сбор пересчитается от новой базы, уровень сохранится.')}<div class="uic">🏙</div><div class="lab">${CFG.TIER_NAMES.biz[nt-1]}</div><div class="nums">${es==='ok'?'<b>готово</b>':es==='stats'?'с ур. '+CFG.BIZ.maxLevel:'с дня '+es.split(':')[1]}</div><button id="bEvo" ${es!=='ok'||S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;
+      shopFrame(t,`<div class="srow"><span class="ico">🏢</span><span class="nm">Бизнес</span><span class="lvl">${t.level}</span></div>
+        <div class="box"><span>За проход</span><b>$${fee(t)}</b></div>
+        <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${fee(t)*CFG.BIZ.landMult}</b></div>
+        <div class="two">
+          <div class="up">${helpBtn('Уровень поднимает сбор в 1,6 раза. Окупается за '+CFG.BIZ.paybackLaps+' кругов.')}<div class="uic">⇧</div><div class="lab">Сбор за проход</div><div class="nums">$${fee(t)}${max?'':` <i>→</i> <b>$${Math.round(fee(t)*CFG.BIZ.feeLevelMult)}</b>`}</div><button id="bUp" ${max||S.cash<cost?'disabled':''}>${max?'Макс':'$'+cost}</button></div>
+          ${evoCard}
+        </div>`);
       $('bUp').onclick=()=>{track('upgrade',{tile:t.i,stat:'biz',lvl:t.level+1,cost});fly('💵',AT.cash(),AT.tile(t.i),flyN(cost));S.cash-=cost;t.level++;qProg('upg',1);log(`Прокачал ${name(t)} до ур. ${t.level}.`);render();draw();};
       const evo=$('bEvo'); if(evo)evo.onclick=()=>{fly('💵',AT.cash(),AT.tile(t.i),8);evolve(t);render();draw();};
-      $('bNo').onclick=()=>closeModal();
     }
   };
   draw(); await openCustom(); save(); render();
@@ -1128,7 +1150,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v8.4. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v8.5. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
