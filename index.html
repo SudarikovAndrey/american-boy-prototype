@@ -86,6 +86,14 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .lbrow.me{background:var(--green);color:#fff;margin-top:4px}
 .lbp{font:500 20px/1 var(--disp);text-align:center}.lbav{width:34px;height:34px;border-radius:50%;background:#0003;display:flex;align-items:center;justify-content:center;font-size:18px}
 .lbn{font-weight:700;font-size:14px;line-height:1.15;min-width:0}.lbn small{display:block;font-size:12px;opacity:.9}.lbr{font-weight:800;white-space:nowrap}
+.card{position:relative}
+.segbar{display:flex;gap:4px;background:#2b2723;border-radius:14px;padding:4px;margin-top:10px;position:sticky;bottom:0}
+.segbar button{flex:1;background:transparent;color:var(--cream);box-shadow:none;border-radius:11px;padding:10px 6px;font-size:15px;font-weight:600;position:relative}.segbar button.on{background:var(--cream);color:var(--ink)}.segbar .dot{position:absolute;top:6px;right:8px}
+.xhead{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:#0002;color:var(--ink);box-shadow:none;padding:0;font-size:15px;z-index:2}.lbhead .xhead{background:#ffffff22;color:var(--cream)}.lbhead .lbt{padding-right:40px}
+.card h2{padding-right:40px}
+.msbar{position:relative;height:12px;background:var(--cream2);border-radius:6px;margin:22px 0 30px}.msbar i{position:absolute;left:0;top:0;bottom:0;background:var(--green);border-radius:6px;transition:width .4s}
+.msbar .tick{position:absolute;top:-4px;transform:translateX(-50%);text-align:center}.msbar .tick b{display:block;width:4px;height:20px;background:#0004;border-radius:2px;margin:0 auto}.msbar .tick.done b{background:#2d6b38}.msbar .tick small{display:block;font-size:11px;font-weight:700;color:#6b5f52;margin-top:2px}
+.msbar em{position:absolute;top:-22px;transform:translateX(-50%);font-style:normal;font-weight:800;font-size:12px;background:var(--ink);color:var(--cream);padding:2px 6px;border-radius:6px;white-space:nowrap}
 #card .tabs{display:flex;gap:6px;margin:6px 0 10px}#card .tabs button{flex:1;background:#0001;color:var(--ink);border-radius:10px;padding:7px 4px;font-size:13px;font-weight:700;position:relative}#card .tabs button.on{background:var(--ink);color:var(--cream)}#card .tabs .dot{position:absolute;top:4px;right:6px}
 #tilebar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:var(--cream);color:var(--ink);box-shadow:0 3px 0 #0005;padding:9px 12px;font-size:14px;font-weight:700;text-align:left;margin-bottom:6px}
 #tilebar b{color:var(--red)}
@@ -399,18 +407,19 @@ async function eventInfo(){
 async function eventHub(tab){ if(tab)hubTab=tab;
   const draw=()=>{
     const L=level(),nz=nextZone(),bl=bpLevel(),bc=bpClaimable(),place=lbPlace();
-    const tabs=`<div class="tabs"><button class="${hubTab==='ticket'?'on':''}" data-tab="ticket">🎫 Билет</button><button class="${hubTab==='pass'?'on':''}" data-tab="pass">🎟 Пропуск${bc?' <i class="dot"></i>':''}</button><button class="${hubTab==='lb'?'on':''}" data-tab="lb">🏆 #${place}</button></div>`;
+    const tabs=`<div class="segbar"><button class="${hubTab==='ticket'?'on':''}" data-tab="ticket">Билет</button><button class="${hubTab==='pass'?'on':''}" data-tab="pass">Пропуск${bc?' <i class="dot"></i>':''}</button><button class="${hubTab==='lb'?'on':''}" data-tab="lb">Топ #${place}</button></div>`;
+    const xhead=`<button class="xhead" id="hNo">✕</button>`;
     if(hubTab==='pass'){
       const pc=bl>=BP.max?100:(S.pts%BP.step);
       const cardOf=(k,track)=>{const w=track==='free'?BP.free(k):BP.paid(k);const claimed=k<=(track==='free'?(S.bp.claimedFree||0):(S.bp.claimedPaid||0));const reached=k<=bl;const locked=track==='paid'&&!S.bp.paid;
         const st=claimed?'done':(reached&&!locked)?'ready':'lock';
         return `<div class="bpc ${track} ${st}" data-k="${k}" data-t="${track}"><span class="bpi">${rwIcon(w)}</span><small>${rwShort(w)}</small><i>${st==='done'?'✓':st==='ready'?'🎁':'🔒'}</i></div>`;};
       const rows=[];for(let k=1;k<=BP.max;k++)rows.push(`<div class="bprow ${k<=bl?'reached':''}">${cardOf(k,'free')}<span class="bpn">${k}</span>${cardOf(k,'paid')}</div>`);
-      $('card').innerHTML=`<h2>🎟 Пропуск Джонни <small>ур. ${bl}/${BP.max}</small>${helpBtn('Уровень за каждые 100 очков поставок. Стандарт — бесплатно. Премиум — с пропуском: кристаллы за каждый уровень, скин Джонни на 12-м и +1 место в фуре на всю неделю.')}</h2>${tabs}
+      $('card').innerHTML=`${xhead}<h2>🎟 Пропуск Джонни <small>ур. ${bl}/${BP.max}</small>${helpBtn('Уровень за каждые 100 очков поставок. Стандарт — бесплатно. Премиум — с пропуском: кристаллы за каждый уровень, скин Джонни на 12-м и +1 место в фуре на всю неделю.')}</h2>
         <div class="row" style="border:0;padding:4px 0"><span class="n">До уровня ${Math.min(BP.max,bl+1)}</span><span class="v">${bl>=BP.max?'макс':S.pts%BP.step+'/'+BP.step}</span></div><div class="bar"><i style="width:${pc}%"></i></div>
         <div class="bphead"><span>Стандарт</span><span></span><span>Премиум${S.bp.paid?' ✓':''}</span></div>
         <div class="bptrack">${rows.join('')}</div>
-        <div class="mbtns">${bc?`<button class="ok" id="bpClaim">Забрать всё (${bc})</button>`:''}${S.bp.paid?'':`<button class="hard" id="bpBuy">Купить пропуск · ${BP.price} ₽<small>+1 место в фуре${bl?' · сразу 💎 '+Array.from({length:bl},(_,i)=>BP.paid(i+1).hard||0).reduce((x,y)=>x+y,0):''}</small></button>`}<button class="sec" id="hNo">Закрыть</button></div>`;
+        <div class="mbtns">${bc?`<button class="ok" id="bpClaim">Забрать всё (${bc})</button>`:''}${S.bp.paid?'':`<button class="hard" id="bpBuy">Купить пропуск · ${BP.price} ₽<small>+1 место в фуре${bl?' · сразу 💎 '+Array.from({length:bl},(_,i)=>BP.paid(i+1).hard||0).reduce((x,y)=>x+y,0):''}</small></button>`}</div>${tabs}`;
       const bb=$('bpBuy');if(bb)bb.onclick=()=>{bpBuy();toast('🎟 Пропуск куплен');save();render();draw();};
       const bcb=$('bpClaim');if(bcb)bcb.onclick=()=>{bpClaim();save();render();draw();};
       $('card').querySelectorAll('.bpc.ready').forEach(c=>c.onclick=()=>{bpClaim();save();render();draw();});
@@ -419,23 +428,23 @@ async function eventHub(tab){ if(tab)hubTab=tab;
     } else if(hubTab==='lb'){
       const rows=lbRows(), nm=nextMilestone(), prev=reachedMilestones().slice(-1)[0], from=prev?prev.pts:0, to=nm?nm.pts:(prev?prev.pts:CFG.TICKET_PTS);
       const rowHtml=(r,i,me)=>`<div class="lbrow ${me?'me':i<3?'p'+(i+1):''}"><b class="lbp">${i+1}</b><span class="lbav">${r.you?'🧢':LB_AVA[LB_NAMES.indexOf(r.n)]||'🙂'}</span><span class="lbn">${r.n}<small>🎫 ${r.pts}</small></span><span class="lbr">💎 ${LB_REWARD[i]||0}</span></div>`;
-      $('card').innerHTML=`<div class="lbhead"><div class="lbt"><b>🏆 Бруклин</b>${helpBtn('Соседи тоже возят товар в Союз. Считаются очки поставок. Награда в конце недели — по месту.')}<span class="lbtimer">⏱ ${lbTimeLeft()}</span></div>
-        ${tabs}
+      $('card').innerHTML=`<div class="lbhead">${xhead}<div class="lbt"><b>🏆 Бруклин</b>${helpBtn('Соседи тоже возят товар в Союз. Считаются очки поставок. Награда в конце недели — по месту.')}<span class="lbtimer">⏱ ${lbTimeLeft()}</span></div>
         <div class="lbprog"><span>${nm?nm.name:'Все рубежи взяты'}</span><span>${S.pts} / ${to}</span></div><div class="bar"><i style="width:${nm?Math.min(100,(S.pts-from)/(to-from)*100):100}%"></i></div>
         ${nm?`<div class="lbbonus"><span>Собери 🎫 ${nm.pts} и получи</span><b>${nm.reward}</b></div>`:''}</div>
         <div class="lbcols"><span>Место</span><span>Игрок</span><span>Награда</span></div>
         <div class="lblist">${rows.map((r,i)=>rowHtml(r,i,false)).join('')}</div>
         ${(()=>{const i=rows.findIndex(r=>r.you);return rowHtml(rows[i],i,true);})()}
-        <div class="mbtns"><button class="sec" id="hNo">Закрыть</button></div>`;
+        ${tabs}`;
       setTimeout(()=>{const me=$('card').querySelector('.lblist .lbrow:nth-child('+place+')');if(me)me.scrollIntoView({block:'nearest'});},30);
     } else {
-    $('card').innerHTML=`<h2>🎫 Билет Джонни <small>Джонни ур. ${L}</small>${helpBtn('Очки поставок — билет Джонни. Награду за задание забрать до полуночи. Район можно открыть раньше за деньги.')}</h2>${tabs}
-      ${(()=>{const nm=nextMilestone(),prev=reachedMilestones().slice(-1)[0];const from=prev?prev.pts:0,to=nm?nm.pts:prev.pts;return `<div class="row"><span class="n">${nm?nm.name:'Все рубежи взяты'}<small>${nm?nm.reward:prev.reward}</small></span><span class="v">${S.pts}/${to}</span></div><div class="bar"><i style="width:${nm?Math.min(100,(S.pts-from)/(to-from)*100):100}%"></i></div>`;})()}
+    $('card').innerHTML=`${xhead}<h2>🎫 Билет Джонни <small>Джонни ур. ${L}</small>${helpBtn('Очки поставок — билет Джонни. Награду за задание забрать до полуночи. Район можно открыть раньше за деньги.')}</h2>
+      ${(()=>{const max=CFG.MILESTONES.slice(-1)[0].pts,pc=Math.min(100,S.pts/max*100),nm=nextMilestone();return `<div class="row" style="border:0;padding:2px 0"><span class="n">${nm?`До «${nm.name}» ещё ${nm.pts-S.pts}`:'Все рубежи взяты'}</span><span class="v">🎫 ${S.pts}</span></div>
+        <div class="msbar"><i style="width:${pc}%"></i>${CFG.MILESTONES.map(m=>`<span class="tick ${S.pts>=m.pts?'done':''}" style="left:${m.pts/max*100}%"><b></b><small>${m.pts}</small></span>`).join('')}<em style="left:${pc}%">${S.pts}</em></div>`;})()}
       <div class="ms3">${CFG.MILESTONES.map((m,i)=>`<div class="msc ${S.pts>=m.pts?'done':(nextMilestone()&&nextMilestone().pts===m.pts?'next':'')}"><span class="msi">${['🎫','🎖','🏆'][i]}</span><b>${m.pts}</b><span class="msn">${m.name}</span><small>${m.reward}</small><i>${S.pts>=m.pts?'✓':'🔒'}</i></div>`).join('')}</div>
       <p class="dim" style="margin-top:12px">🎯 Задания дня</p>
       ${S.q.map((q,i)=>`<div class="row"><span class="n">${i?'🔥 ':''}${q.text}<small>${rwText(q.reward)}</small></span>${q.claimed?'<span class="v">✓</span>':q.done?`<button class="sm ok" data-claim="${i}">Забрать</button>`:`<span class="v">${Math.min(q.prog,q.goal)}/${q.goal}</span>`}</div>`).join('')}
       ${nz>0?`<div class="row" style="margin-top:6px"><span class="n">🔒 ${CFG.ZONES[nz].name}</span><button class="sm ok" id="hZone" ${S.cash<zonePrice(nz)?'disabled':''}>Открыть · $${zonePrice(nz)}<small>бесплатно в день ${CFG.ZONES[nz].day}</small></button></div>`:''}
-      <div class="mbtns"><button class="sec" id="hJ">🧢 Джонни</button><button class="sec" id="hHelp" style="flex:0 0 52px">?</button><button id="hNo">Закрыть</button></div>`;
+      <div class="mbtns"><button class="sec" id="hJ">🧢 Джонни</button><button class="sec" id="hHelp" style="flex:0 0 52px">?</button></div>${tabs}`;
     }
     $('card').querySelectorAll('button[data-tab]').forEach(b=>b.onclick=()=>{hubTab=b.dataset.tab;track('hub_tab',{tab:hubTab});draw();});
     $('card').querySelectorAll('button[data-claim]').forEach(b=>b.onclick=()=>{const q=S.q[+b.dataset.claim],r=q.reward;track('quest_claim',{id:q.id,goal:q.goal,reward:r});if(r.rolls){fly('🎲',AT.card(),AT.dice(),3);S.rolls+=r.rolls;}if(r.cash){fly('💵',AT.card(),AT.cash(),flyN(r.cash),{pulse:'sCash'});S.cash+=r.cash;}q.claimed=true;log(`🎯 Награда за «${q.text}»: ${rwText(r)}.`);toast('Награда получена');save();render();draw();});
@@ -1245,7 +1254,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v9.18. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v9.19. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
