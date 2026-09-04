@@ -105,15 +105,15 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 #log{font-size:12px;color:#cfc3aa;max-height:34px;overflow:hidden;line-height:1.3}
 #log div:first-child{color:var(--cream)}
 #toast{position:fixed;left:50%;top:calc(var(--topH,170px) + 8px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:var(--cream);color:var(--ink);padding:8px 14px 8px 8px;border-radius:14px;font-size:14px;font-weight:600;line-height:1.3;pointer-events:none;opacity:0;transition:opacity .25s;z-index:50;box-shadow:0 4px 0 #0005,0 10px 24px #0006;width:max-content;max-width:min(92vw,420px);text-align:left}
-#modal{position:fixed;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center;z-index:45}
+#modal{position:fixed;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center;z-index:30}
 @media(min-width:600px){#modal{align-items:center;padding:12px}}
 #modal[hidden]{display:none}
 #modal.mid{align-items:flex-start;padding:calc(var(--topH,170px) + 6px) 12px 0}
 .card.bare{background:transparent;box-shadow:none;padding:0;max-width:400px;max-height:none;overflow:visible;border-radius:0;display:flex;flex-direction:column;align-items:stretch}
 .shop{background:var(--cream);border-radius:calc(18px*var(--cs,1));overflow:hidden;color:var(--ink);box-shadow:0 calc(6px*var(--cs,1)) 0 #0005;min-height:0;flex:0 1 auto}
 .shop .banner{display:block;position:relative;background:linear-gradient(180deg,#ebe8e1,#cfc9be);padding:calc(8px*var(--cs,1)) calc(12px*var(--cs,1)) calc(8px*var(--cs,1));min-height:calc(68px*var(--cs,1))}
-.shop .banner small{display:block;letter-spacing:.18em;font-size:calc(12px*var(--cs,1));font-weight:700;color:#4a443c;text-transform:uppercase;padding-right:calc(84px*var(--cs,1))}
-.shop .banner b{display:block;font-weight:900;font-size:calc(30px*var(--cs,1));line-height:1;font-family:Impact,'Arial Black','Helvetica Neue',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#2a221c;margin-top:calc(4px*var(--cs,1));padding-right:calc(84px*var(--cs,1));word-break:break-word}
+.shop .banner small{display:block;letter-spacing:.18em;font-size:calc(12px*var(--cs,1));font-weight:700;color:#4a443c;text-transform:uppercase;padding-right:calc(84px*var(--cs,1));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shop .banner b{display:block;font-weight:900;font-size:calc(30px*var(--cs,1));line-height:1;font-family:Impact,'Arial Black','Helvetica Neue',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#2a221c;margin-top:calc(4px*var(--cs,1));padding-right:calc(84px*var(--cs,1));white-space:nowrap;overflow:hidden}
 .shop .banner .big{position:absolute;right:calc(10px*var(--cs,1));top:calc(8px*var(--cs,1));font-size:calc(46px*var(--cs,1));line-height:1;filter:drop-shadow(0 calc(5px*var(--cs,1)) calc(6px*var(--cs,1)) #0007)}
 .shop .srow{display:flex;align-items:center;gap:calc(10px*var(--cs,1));padding:calc(6px*var(--cs,1)) calc(12px*var(--cs,1)) calc(4px*var(--cs,1))}
 .shop .ico{width:calc(42px*var(--cs,1));height:calc(42px*var(--cs,1));border-radius:50%;background:#2a221c;border:calc(3px*var(--cs,1)) solid var(--green);display:flex;align-items:center;justify-content:center;font-size:calc(22px*var(--cs,1));flex:0 0 auto}
@@ -185,7 +185,7 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
 .wbtns{display:flex;gap:6px;margin-top:6px}
 .wbtns button{flex:1}
 .wbtns button.bag{background:#7a5c2e;box-shadow:0 3px 0 #563f1c}
-#tip{position:fixed;left:14px;right:14px;z-index:48;background:#fff4d6;color:var(--ink);border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.35;box-shadow:0 4px 0 #0005,0 8px 24px #0006;max-width:432px;margin:0 auto;cursor:pointer}
+#tip{position:fixed;left:14px;right:14px;z-index:40;background:#fff4d6;color:var(--ink);border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.35;box-shadow:0 4px 0 #0005,0 8px 24px #0006;max-width:432px;margin:0 auto;cursor:pointer}
 #tip:after{content:'';position:absolute;left:50%;bottom:-9px;margin-left:-9px;border:9px solid transparent;border-top-color:#fff4d6;border-bottom:0}
 #tip[hidden]{display:none}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:45;overflow:hidden}
@@ -839,6 +839,7 @@ function fitCard(){try{const c=$('card');if(!c.classList.contains('bare'))return
   c.style.setProperty('--cs','1');const cs=getComputedStyle(document.documentElement),ui=parseFloat(cs.getPropertyValue('--ui'))||1,ph=parseFloat(cs.getPropertyValue('--panelH'))||150,th=$('top').getBoundingClientRect().height;
   const dieTop=($('bRoll')&&$('bRoll').getBoundingClientRect().top)||(window.innerHeight-ph); const avail=Math.min(window.innerHeight-th-ph,dieTop-th)-14, need=sh.scrollHeight+(x?x.offsetHeight+8:0);
   const f=Math.max(0.4,Math.min(1,avail/need));c.style.setProperty('--cs',f.toFixed(3)); // карточка занимает всё свободное место, но не крупнее эталона
+  const tb=c.querySelector('.banner b');if(tb){let fs=30;tb.style.fontSize='';while(fs>14&&tb.scrollWidth>tb.clientWidth+1){fs-=1;tb.style.fontSize=`calc(${fs}px*var(--cs,1))`;}}
   if(!fitCard._again){fitCard._again=true;requestAnimationFrame(()=>{fitCard._again=false;fitCard();});}}catch(e){}} // второй проход после раскладки шрифтов
 async function kioskWindow(t){
   const draw=()=>{
@@ -1211,7 +1212,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v9.8. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v9.9. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
