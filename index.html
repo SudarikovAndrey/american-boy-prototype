@@ -84,29 +84,39 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 #modal{position:fixed;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center;z-index:30}
 @media(min-width:600px){#modal{align-items:center;padding:12px}}
 #modal[hidden]{display:none}
-#modal.mid{align-items:center;padding:12px}
-.card.bare{background:transparent;box-shadow:none;padding:0;max-width:400px;overflow:visible;border-radius:0}
-.shop{background:var(--cream);border-radius:18px;overflow:hidden;color:var(--ink);box-shadow:0 6px 0 #0005}
-.shop .banner{display:block;position:relative;background:linear-gradient(180deg,#ebe8e1,#cfc9be);padding:16px 18px 14px;min-height:100px}
+#modal.mid{align-items:center;padding:calc(var(--topH,170px) + 4px) 12px calc(var(--panelH,150px) + 4px)}
+.card.bare{background:transparent;box-shadow:none;padding:0;max-width:400px;max-height:100%;overflow:visible;border-radius:0;display:flex;flex-direction:column;align-items:stretch}
+.shop{background:var(--cream);border-radius:18px;overflow:auto;color:var(--ink);box-shadow:0 6px 0 #0005;min-height:0;flex:0 1 auto}
+.shop .banner{display:block;position:relative;background:linear-gradient(180deg,#ebe8e1,#cfc9be);padding:10px 14px 10px;min-height:72px}
 .shop .banner small{display:block;letter-spacing:.22em;font-size:11px;font-weight:700;color:#4a443c;text-transform:uppercase;padding-right:90px}
-.shop .banner b{display:block;font:900 38px/1 Impact,'Arial Black','Helvetica Neue',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#2a221c;margin-top:6px;padding-right:90px;word-break:break-word}
-.shop .banner .big{position:absolute;right:14px;top:14px;font-size:66px;line-height:1;filter:drop-shadow(0 5px 6px #0007)}
-.shop .srow{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}
-.shop .ico{width:50px;height:50px;border-radius:50%;background:#2a221c;border:3px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:24px;flex:0 0 auto}
-.shop .nm{flex:1;font-size:19px;font-weight:700}
-.shop .lvl{background:var(--green);color:#fff;font:900 24px/1 Impact,'Arial Black',sans-serif;padding:12px 20px;border-radius:48% 52% 46% 54%/58% 60% 40% 42%;min-width:74px;text-align:center}
-.shop .box{background:#fff8e6;border-radius:12px;margin:0 16px 10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:16px;gap:10px}
-.shop .box b{font-size:19px;white-space:nowrap}.shop .box .bar{flex:1;margin:0 10px}
-.shop .two{display:flex;gap:10px;padding:0 16px 16px}
-.shop .up{flex:1;background:#fff8e6;border-radius:12px;padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;text-align:center;min-width:0}
-.shop .up .uic{font-size:28px;line-height:1.1}.shop .up .lab{font-size:13px;color:#4a443c}
-.shop .up .nums{font:900 28px/1 Impact,'Arial Black',sans-serif;color:#2a221c;margin:6px 0 8px;white-space:nowrap}.shop .up .nums b{color:var(--green)}.shop .up .nums i{font-style:normal;color:var(--green);font-size:18px;margin:0 5px}
+.shop .banner b{display:block;font:900 28px/1 Impact,'Arial Black','Helvetica Neue',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#2a221c;margin-top:6px;padding-right:90px;word-break:break-word}
+.shop .banner .big{position:absolute;right:12px;top:10px;font-size:48px;line-height:1;filter:drop-shadow(0 5px 6px #0007)}
+.shop .srow{display:flex;align-items:center;gap:10px;padding:8px 14px 6px}
+.shop .ico{width:44px;height:44px;border-radius:50%;background:#2a221c;border:3px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:24px;flex:0 0 auto}
+.shop .nm{flex:1;font-size:17px;font-weight:700}
+.shop .lvl{background:var(--green);color:#fff;font:900 20px/1 Impact,'Arial Black',sans-serif;padding:9px 16px;border-radius:48% 52% 46% 54%/58% 60% 40% 42%;min-width:74px;text-align:center}
+.shop .box{background:#fff8e6;border-radius:12px;margin:0 14px 6px;padding:7px 14px;display:flex;justify-content:space-between;align-items:center;font-size:15px;gap:10px}
+.shop .box b{font-size:17px;white-space:nowrap}.shop .box .bar{flex:1;margin:0 10px}
+.shop .two{display:flex;gap:8px;padding:0 14px 12px}
+.shop .up{flex:1;background:#fff8e6;border-radius:12px;padding:8px 8px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;text-align:center;min-width:0}
+.shop .up .uic{font-size:22px;line-height:1.1}.shop .up .lab{font-size:12px;color:#4a443c}
+.shop .up .nums{font:900 22px/1 Impact,'Arial Black',sans-serif;color:#2a221c;margin:3px 0 5px;white-space:nowrap}.shop .up .nums b{color:var(--green)}.shop .up .nums i{font-style:normal;color:var(--green);font-size:18px;margin:0 5px}
 .shop .up button:not(.qm),.shop .wide button{background:#1f3f7a;box-shadow:0 3px 0 #142a52;border-radius:8px;padding:9px 8px;font-size:15px}.shop .up button:not(.qm){width:100%}
 .shop .up .qm,.shop .banner .qm{position:absolute;top:8px;right:8px;margin:0;width:22px;height:22px;padding:0;border-radius:50%;background:#0002;color:var(--ink);box-shadow:none;font-size:12px;line-height:22px}.shop .banner .qm{top:auto;bottom:10px;right:14px}
 .shop .wide{margin:0 16px 16px;background:#fff8e6;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .shop .wide .n{flex:1}.shop .wide small{display:block;color:#6b5f52;font-size:12px}
-.shop .buy{margin:0 16px 16px;width:calc(100% - 32px);padding:14px;font-size:18px}
-.xclose{display:block;margin:14px auto 0;width:64px;height:60px;border-radius:16px;background:var(--cream);color:var(--ink);font-size:24px;box-shadow:0 4px 0 #0005;padding:0}
+.shop .buy{margin:0 14px 14px;width:calc(100% - 28px);padding:12px;font-size:17px}
+.shop .whead{padding:10px 14px 6px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}.shop .whead .qm{margin:0}
+.shop .wr{display:flex;align-items:center;gap:10px;background:#fff8e6;border-radius:12px;margin:0 14px 8px;padding:8px 10px}
+.shop .wr.trend{outline:2px solid var(--gold)}
+.shop .ring{width:40px;height:40px;border-radius:50%;background:conic-gradient(var(--green) var(--p),#0002 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.shop .ring i{width:28px;height:28px;border-radius:50%;background:#fff8e6;display:flex;align-items:center;justify-content:center;font-size:15px;font-style:normal}
+.shop .wn{flex:1;min-width:0;font-weight:700;font-size:14px;line-height:1.2}.shop .wn small{display:block;color:#6b5f52;font-weight:600;font-size:11px}
+.shop .wq{font-weight:800;white-space:nowrap;font-size:14px}
+.shop .wr button{padding:7px 9px;font-size:13px;border-radius:8px;background:#1f3f7a;box-shadow:0 2px 0 #142a52;white-space:nowrap}
+.shop .buyall{margin:4px 14px 14px;width:calc(100% - 28px);background:#1f3f7a;box-shadow:0 4px 0 #142a52;padding:13px 14px;font-size:16px;display:flex;justify-content:space-between;align-items:center;border-radius:12px}
+.shop .empty{padding:6px 14px 14px;color:#6b5f52}
+.xclose{display:block;margin:8px auto 0;width:58px;height:46px;flex:0 0 auto;border-radius:16px;background:var(--cream);color:var(--ink);font-size:24px;box-shadow:0 4px 0 #0005;padding:0}
 @keyframes cardIn{from{transform:translateY(36px);opacity:0}to{transform:none;opacity:1}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
@@ -847,21 +857,18 @@ async function shop(){
   const cash0=S.cash, stock0=myKiosks().reduce((a,t)=>a+t.goods,0);
   const draw=()=>{
     const gs=CFG.GOODS.filter(g=>goodKiosks(g.id).length); // только товары, под которые есть свои точки
-    const rows=gs.map(g=>{const ks=goodKiosks(g.id),c=goodCap(g.id),st=stock(g.id),p=buyPrice(g.id),free=c-st,pc=c?Math.round(st/c*100):0;
-      const fillCost=free*p, word=ks.length===1?'точка':ks.length<5?'точки':'точек';
-      return `<div class="wrow ${S.trend===g.id?'trend':''}"><div class="wtop"><span>${g.icon} ${g.name}${S.trend===g.id?' 🔥 ×'+CFG.TREND_MULT:''}</span><span>${st}/${c}</span></div>
-        <small class="wmeta">${[...new Set(ks.map(k=>pointName(k)))].join(', ')} · ${goodSales(g.id)} шт за круг по $${sellPrice(g.id)}</small>
-        <div class="bar"><i style="width:${pc}%"></i></div>
-        <div class="wbtns"><button class="sm" id="wb_${g.id}" data-g="${g.id}" ${free<=0||S.cash<p?'disabled':''}>${free<=0?'Полно':'+1 шт · $'+p}</button>
-        <button class="sm ok" data-fill="${g.id}" ${free<=0||S.cash<p?'disabled':''}>${free<=0?'Полно':(S.cash>=fillCost?'Заполнить · $'+fillCost:'На все $'+S.cash)}</button></div></div>`;}).join('');
     const ks=myKiosks(), need=ks.reduce((s,t)=>s+(cap(t)-t.goods)*buyPrice(t.good),0), minP=Math.min(...ks.filter(t=>t.goods<cap(t)).map(t=>buyPrice(t.good)),Infinity);
-    $('card').innerHTML=`<h2>🏬 Costco <small>оптовый склад</small>${helpBtn('Товар лежит в точках и продаётся при проходе старта. Раскладывается сам, сначала в точки с большими продажами. Из него же собирается поставка.')}</h2>
-      ${hintHtml('shop','Товар лежит в точках и продаётся, когда проходишь старт. Из этого же запаса собирается поставка в Союз — что отправишь, то уже не продашь.')}
-      ${ks.length?`${perk().disc?`<p>Скидка Джонни ${perk().disc*100}%.</p>`:''}${rows}
-        <div class="mbtns"><button class="ok" id="wAll" ${need<=0||S.cash<minP?'disabled':''}>${need<=0?'Всё заполнено':S.cash>=need?'Заполнить всё · $'+need:'На все $'+S.cash+' — самое выгодное'}</button><button class="sec" id="wNo">Дальше</button></div>`
-      :`<p>Своих точек нет — товар негде хранить. Сначала купи точку.</p>${rows}<div class="mbtns"><button class="sec" id="wNo">Дальше</button></div>`}`;
+    const rows=gs.map(g=>{const kk=goodKiosks(g.id),c=goodCap(g.id),st=stock(g.id),p=buyPrice(g.id),free=c-st,pc=c?Math.round(st/c*100):0;
+      return `<div class="wr ${S.trend===g.id?'trend':''}"><span class="ring" style="--p:${pc}%"><i>${g.icon}</i></span><div class="wn">${g.name}${S.trend===g.id?' 🔥×'+CFG.TREND_MULT:''}<small>${[...new Set(kk.map(k=>pointName(k)))].join(', ')} · ⟳ ${goodSales(g.id)}/круг · $${sellPrice(g.id)}</small></div><span class="wq">${st}/${c}</span><button data-g="${g.id}" ${free<=0||S.cash<p?'disabled':''}>${free<=0?'Полно':'+1 · $'+p}</button></div>`;}).join('');
+    hintHtml('shop','Товар лежит в точках и продаётся, когда проходишь старт. Из этого же запаса собирается поставка в Союз — что отправишь, то уже не продашь.');
+    $('modal').classList.add('mid'); $('card').className='card bare';
+    $('card').innerHTML=`<div class="shop"><div class="banner"><small>Оптовый склад · ${CFG.ZONES[S.tiles[S.pos].zone>=0?S.tiles[S.pos].zone:0].name}</small><b>Costco</b><span class="big">🏬</span></div>
+      <div class="whead">Покупай товары для точек ${helpBtn('Товар лежит в точках и продаётся при проходе старта. Раскладывается сам, сначала в точки с большими продажами. Из него же собирается поставка.')}</div>
+      ${ks.length?rows:'<p class="empty">Своих точек нет — товар негде хранить. Сначала купи точку.</p>'}
+      ${perk().disc?`<p class="empty">Скидка Джонни ${perk().disc*100}%.</p>`:''}
+      ${ks.length?`<button class="buyall" id="wAll" ${need<=0||S.cash<minP?'disabled':''}><span>${need<=0?'Всё заполнено':S.cash>=need?'Закупиться на точки':'На все — самое выгодное'}</span><b>${need<=0?'':'$'+(S.cash>=need?need:S.cash)}</b></button>`:''}
+    </div><button class="xclose" id="wNo">✕</button>`;
     $('card').querySelectorAll('button[data-g]').forEach(b=>hold(b,()=>{const g=b.dataset.g,p=buyPrice(g);if(goodCap(g)-stock(g)<=0||S.cash<p)return;if(addGoods(g,1)){S.cash-=p;}draw();render();}));
-    $('card').querySelectorAll('button[data-fill]').forEach(b=>b.onclick=()=>{const g=b.dataset.fill,p=buyPrice(g);let spent=0;while(goodCap(g)-stock(g)>0&&S.cash>=p){if(!addGoods(g,1))break;S.cash-=p;spent+=p;}log(`Закупил ${good(g).name.toLowerCase()} на $${spent}.`);draw();render();});
     const all=$('wAll'); if(all)all.onclick=()=>{let spent=0;
       // денег на всё хватает — просто заполнить; не хватает — сначала самое выгодное, по одному кругу продаж на точку, кругами
       if(S.cash>=need){for(const g of CFG.GOODS){const p=buyPrice(g.id);while(goodCap(g.id)-stock(g.id)>0&&S.cash>=p){if(!addGoods(g.id,1))break;S.cash-=p;spent+=p;}}}
@@ -1150,7 +1157,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v8.6. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v8.7. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1172,7 +1179,7 @@ function gridOf(i){if(i<10)return[10-i,10];if(i<20)return[0,20-i];if(i<30)return
 function iso(gx,gy){return[OX+(gx-gy)*TW/2,OY+(gx+gy)*TH/2];}
 function panelH(){const p=$('panel');const h=(p&&p.offsetHeight)||0;return h>20?h-40:0;} // док лежит поверх поля; часть его высоты — прозрачный градиент
 function fit(){
-  try{document.documentElement.style.setProperty('--panelH',(($('panel')&&$('panel').offsetHeight)||150)+'px');}catch(e){}
+  try{document.documentElement.style.setProperty('--panelH',Math.max(90,(($('panel')&&$('panel').offsetHeight)||220)-70)+'px');document.documentElement.style.setProperty('--topH',(($('top')&&$('top').offsetHeight)||170)+'px');}catch(e){}
   const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
   cv.width=r.width*dpr;cv.height=r.height*dpr;cx.setTransform(dpr,0,0,dpr,0,0);
   TW=Math.max(56,Math.min(130,r.width/CFG.ZOOM));TH=TW*0.58;OX=0;OY=0;
