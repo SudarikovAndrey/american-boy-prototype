@@ -81,7 +81,7 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 .dice.jail{background:#546e7a;box-shadow:0 5px 0 #37474f}
 #log{font-size:12px;color:#cfc3aa;max-height:34px;overflow:hidden;line-height:1.3}
 #log div:first-child{color:var(--cream)}
-#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--cream);color:var(--ink);padding:10px 16px;border-radius:12px;font-size:15px;font-weight:600;line-height:1.35;pointer-events:none;opacity:0;transition:opacity .25s;z-index:20;max-width:min(92vw,440px);text-align:center;box-shadow:0 3px 0 #0005,0 6px 18px #0006;cursor:pointer}
+#toast{position:fixed;left:50%;top:calc(var(--topH,170px) + 8px);transform:translateX(-50%);background:var(--cream);color:var(--ink);padding:10px 16px;border-radius:12px;font-size:15px;font-weight:600;line-height:1.35;pointer-events:none;opacity:0;transition:opacity .25s;z-index:20;max-width:min(92vw,440px);text-align:center;box-shadow:0 3px 0 #0005,0 6px 18px #0006;cursor:pointer}
 #modal{position:fixed;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center;z-index:30}
 @media(min-width:600px){#modal{align-items:center;padding:12px}}
 #modal[hidden]{display:none}
@@ -190,7 +190,8 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
       <span class="cur"><i class="ic b">💎</i><b id="sHard">5</b></span>
       <span class="cur"><i class="ic o">📅</i><b id="sDay">1/7</b></span>
     </div>
-    <div class="bar2" id="qrow"><button class="qchip" id="q0"><span></span><i></i></button><button class="qchip" id="q1"><span></span><i></i></button><span class="chip" id="sEvent" hidden></span></div>
+    <div class="bar2" id="qrow"><button class="qchip" id="q0"><span></span><i></i></button><button class="qchip" id="q1"><span></span><i></i></button></div>
+    <div class="bar2"><span class="chip" id="sEvent" hidden></span></div>
   </div>
   <div id="stage"><canvas id="board"></canvas><div id="inv" hidden><div id="invList" hidden></div><button id="invBtn"></button></div></div>
   <div id="panel">
@@ -449,7 +450,7 @@ async function intro(){
 let tipT;
 function positionTip(){const el=$('tip');const m=$('modal');let top;
   if(!m.hidden){top=$('card').getBoundingClientRect().top;} else {top=$('panel').getBoundingClientRect().top;}
-  el.style.bottom=Math.max(8,window.innerHeight-top+12)+'px';}
+  el.style.bottom=(Math.max(8,window.innerHeight-top+12)/uiScale())+'px';}
 function showTip(text){const el=$('tip');el.textContent='💡 '+text;el.hidden=false;positionTip();clearTimeout(tipT);tipT=setTimeout(hideTip,10000);}
 function hideTip(){$('tip').hidden=true;clearTimeout(tipT);}
 function helpBtn(text){return `<button class="qm" data-h="${text.replace(/"/g,'&quot;')}" onclick="showTip(this.dataset.h)">?</button>`;}
@@ -659,7 +660,8 @@ const flyN=amt=>amt>=1000?8:amt>=200?6:amt>=50?4:amt>=10?3:amt>0?2:1;
 
 // ---------- лог/тост/модалка ----------
 function log(m){S.log.unshift(m);S.log=S.log.slice(0,6);} // журнал хранится для отладки, на экране не показывается
-let toastT;function toast(m,ms){const t=$('toast');t.style.top=($('top').getBoundingClientRect().bottom+10)+'px';t.textContent=m;t.style.opacity=1;t.style.pointerEvents='auto';clearTimeout(toastT);toastT=setTimeout(()=>{t.style.opacity=0;t.style.pointerEvents='none';},ms||Math.min(7000,2200+m.length*45));}
+function uiScale(){try{return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui'))||1;}catch(e){return 1;}}
+let toastT;function toast(m,ms){const t=$('toast');t.style.top=(($('top').getBoundingClientRect().bottom+10)/uiScale())+'px';t.textContent=m;t.style.opacity=1;t.style.pointerEvents='auto';clearTimeout(toastT);toastT=setTimeout(()=>{t.style.opacity=0;t.style.pointerEvents='none';},ms||Math.min(7000,2200+m.length*45));}
 const wait=ms=>CFG.SPEED>=100?Promise.resolve():new Promise(r=>setTimeout(r,ms/CFG.SPEED));
 let modalSticky=false;
 function modal(html,btns,opt){return new Promise(res=>{
@@ -1162,7 +1164,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v8.8. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v8.9. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1339,7 +1341,7 @@ cv.addEventListener('click',e=>{
   else toast(`${t.type==='biz'?'🏢 '+bizName(t):pointName(t)+' · '+good(t.good).icon+' '+good(t.good).name} · $${t.price} — купить можно, остановившись на клетке.`);
 });
 $('tip').onclick=hideTip;$('modal').addEventListener('click',e=>{if(e.target===$('modal')&&!modalSticky)closeModal();});$('toast').onclick=()=>{clearTimeout(toastT);$('toast').style.opacity=0;$('toast').style.pointerEvents='none';};$('bHub').onclick=()=>{if(!moving)eventHub();};[0,1].forEach(i=>{$('q'+i).onclick=()=>{if(moving)return;const q=S.q[i];if(q&&q.done&&!q.claimed){const r=q.reward;if(r.rolls){fly('🎲',AT.el('q'+i),AT.dice(),3);S.rolls+=r.rolls;}if(r.cash){fly('💵',AT.el('q'+i),AT.cash(),flyN(r.cash),{pulse:'sCash'});S.cash+=r.cash;}q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});toast('Награда получена');save();render();}else eventHub();};});
-$('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('bJohnny').onclick=()=>{if(!moving)eventHub();}; // и аватар, и кнопка дока открывают ивентовое окно; карточка Джонни — из него$('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
+$('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('bJohnny').onclick=()=>{if(!moving)eventHub();}; /* аватар и кнопка дока открывают ивентовое окно; карточка Джонни — из него */ $('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
 $('bRoll').onclick=roll;$('bTaxi').onclick=taxi;$('bSettings').onclick=settings;$('invBtn').onclick=()=>{invOpen=!invOpen;render();};
 window.addEventListener('resize',()=>{fit();draw();if(!$('tip').hidden)positionTip();});
 if(window.ResizeObserver)new ResizeObserver(()=>{fit();draw();}).observe(cv);
