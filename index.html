@@ -445,7 +445,7 @@ async function eventHub(tab){ if(tab)hubTab=tab;
         ${tabs}`;
       setTimeout(()=>{const me=$('card').querySelector('.lblist .lbrow:nth-child('+place+')');if(me)me.scrollIntoView({block:'nearest'});},30);
     } else {
-    $('card').innerHTML=`${xhead}<h2>🎫 Билет Джонни <small>Джонни ур. ${L}</small>${helpBtn('Очки поставок — билет Джонни. Награду за задание забрать до полуночи. Район можно открыть раньше за деньги.')}</h2>
+    $('card').innerHTML=`${xhead}<h2>🎫 Билет Джонни <small>Джонни ур. ${L}</small>${helpBtn(`Очки поставок — билет Джонни. Награду за задание забрать до полуночи. Район можно открыть раньше за деньги. В конце недели нал и точки дают бонус до ${CFG.FINAL.cashCap+CFG.FINAL.assetsCap} очков, остатки товара сгорают.`)}</h2>
       ${(()=>{const max=CFG.MILESTONES.slice(-1)[0].pts,pc=Math.min(100,S.pts/max*100),nm=nextMilestone();return `<div class="row" style="border:0;padding:2px 0"><span class="n">${nm?`До «${nm.name}» ещё ${nm.pts-S.pts}`:'Все рубежи взяты'}</span><span class="v">🎫 ${S.pts}</span></div>
         <div class="msbar"><i style="width:${pc}%"></i>${CFG.MILESTONES.map(m=>`<span class="tick ${S.pts>=m.pts?'done':''}" style="left:${m.pts/max*100}%"><b></b><small>${m.pts}</small></span>`).join('')}<em style="left:${pc}%">${S.pts}</em></div>`;})()}
       <div class="ms3">${CFG.MILESTONES.map((m,i)=>`<div class="msc ${S.pts>=m.pts?'done':(nextMilestone()&&nextMilestone().pts===m.pts?'next':'')}"><span class="msi">${['🎫','🎖','🏆'][i]}</span><b>${m.pts}</b><span class="msn">${m.name}</span><small>${m.reward}</small><i>${S.pts>=m.pts?'✓':'🔒'}</i></div>`).join('')}</div>
@@ -513,7 +513,7 @@ async function intro(){
     `<h2>🧢 Америкэн бой</h2><div class="intro"><p>Ты на неделю в Бруклине. Встречает <b>Джонни</b> — местный. Он знает: Россия — страна возможностей, и работа с русскими пацанами для него — билет туда.</p><p>Уговор такой: Джонни крутится с тобой неделю и <b>организует поставки в бывший Союз</b>. Набьёте <b>${CFG.TICKET_PTS} очков</b> поставок — ты принимаешь его в банду.</p></div>`,
     `<h2>Как зарабатывать</h2><div class="intro"><p>🎲 <b>Бросай</b> — до ${CFG.ROLLS_PER_DAY} ходов в запасе, новый ход каждые ${CFG.REGEN_MIN} минут.</p><p>🏪 <b>Покупай точки</b> — они продают товар. 🏢 <b>Бизнесы</b> платят за проход, за остановку — втройне.</p><p>🏬 На <b>Costco</b> закупай товар — он лежит в точках.</p><p>🏁 Проходишь <b>старт</b> — товар продаётся.</p></div>`,
     `<h2>💎 Харда и помощники</h2><div class="intro"><p>💎 <b>Харда</b> покупает ходы, когда они кончились, такси до Costco, откуп от полиции и места в контейнере. Магазин 🛒 в доке.</p><p>🎯 <b>Задания дня</b> — полоса под шапкой. Выполнил — жми «Забрать», награда сгорает в полночь.</p></div>`,
-    `<h2>Откуда очки</h2><div class="intro"><p>📦 <b>Поставка в Союз</b> — кнопка в доке. Одна в день, в любой момент, из товара твоих точек. Дорогой товар даёт больше очков за место. Забыл — в конце дня фура заберёт сама.</p><p>Продать товар здесь или отправить в Союз — решаешь ты. Очки — билет Джонни.</p></div>`];
+    `<h2>Откуда очки</h2><div class="intro"><p>📦 <b>Поставка в Союз</b> — кнопка в доке. Одна в день, в любой момент, из товара твоих точек. Дорогой товар даёт больше очков за место. Забыл — в конце дня фура заберёт сама.</p><p>Продать товар здесь или отправить в Союз — решаешь ты. Очки — билет Джонни.</p><p>🏁 <b>В конце недели</b> подводим итоги: остатки товара сгорают, нал и точки дают маленький бонус — до ${CFG.FINAL.cashCap+CFG.FINAL.assetsCap} очков вместе. Всё главное — через фуру.</p></div>`];
   for(let i=0;i<pages.length;i++){await modal(pages[i],[{t:i<pages.length-1?'Дальше':'Поехали',v:1,cls:'ok'}]);}
   S.tips.intro=true;save();
   hint('roll','Жми на кубик. Первая цель — своя точка: остановись на точке с ценой и купи.');
@@ -1123,7 +1123,7 @@ async function parcel(forced){
     for(let k=n;k<N;k++)sl+='<div class="slot"></div>';
     const canSlot=S.extraSlots<CFG.EXTRA_SLOT.perDay, sp=slotPrice(), hp=CFG.HARD.slot*Math.pow(2,S.extraSlots||0);
     const gs=CFG.GOODS.filter(g=>stock(g.id)>0||box[g.id]>0);
-    $('card').innerHTML=`<h2>📦 Поставка в Союз <small>${forced?'фура уходит':'1 в день'} · ${N} мест</small>${helpBtn('Одна поставка в день, до полуночи. Дорогой товар даёт больше очков за место. Не отправишь сам — в полночь фура заберёт самое дорогое.')}</h2>
+    $('card').innerHTML=`<h2>📦 Поставка в Союз <small>${forced?'фура уходит':'1 в день'} · ${N} мест</small>${helpBtn('Одна поставка в день, до полуночи. Дорогой товар даёт больше очков за место. Не отправишь сам — в полночь фура заберёт самое дорогое. Что не влезло в фуру за неделю — сгорает.')}</h2>
       ${hintHtml('parcel','Поставка — кнопка 📦 в доке, одна в день, из товара твоих точек. Что отправишь, то уже не продашь. Дорогой товар даёт больше очков за место. Очки — это билет Джонни.')}
       ${forced?'<p class="t">День кончился. Фура забирает то, что положишь сейчас.</p>':''}
       <div class="slots">${sl}</div>`+
@@ -1276,7 +1276,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v10.1. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v10.2. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
