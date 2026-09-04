@@ -104,6 +104,7 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 #tilebar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:var(--cream);color:var(--ink);box-shadow:0 3px 0 #0005;padding:9px 12px;font-size:14px;font-weight:700;text-align:left;margin-bottom:6px}
 #tilebar b{color:var(--red)}
 #tilebar[hidden]{display:none}
+#tilebar.pulse{animation:tbPulse .6s ease-in-out 4}@keyframes tbPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px);box-shadow:0 7px 0 #0005}}
 button{border:0;border-radius:12px;cursor:pointer;font-weight:700;touch-action:manipulation;font-size:15px;padding:10px 14px;background:var(--red);color:#fff;box-shadow:0 3px 0 var(--red2)}
 button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--red2)}
 button:disabled{opacity:.45;cursor:default}
@@ -219,6 +220,8 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
 .perk.off{opacity:.45}
 .perk b{min-width:44px}
 #sCash.neg{color:#ff6b6b}
+.up .nums small.pb{display:block;font-size:calc(10px*var(--cs,1));line-height:1.1;color:#6b5f52;font-weight:500;margin-top:calc(2px*var(--cs,1))}
+.row.today .n{color:#ffd54f}.row.today .n small{color:#f4e2b0}.row.past .n{opacity:.55}
 </style>
 
 </head>
@@ -277,7 +280,7 @@ const CFG = {
   SHOP_SOFT:[{mult:1,hard:3},{mult:3,hard:8},{mult:8,hard:20}], // нал за харду: сумма = mult × средняя цена точки лучшего открытого района // цены: сверхурочные, откуп от полиции, такси, место в контейнере, район ($ за 1💎)
   START_CASH: 250,
   PARCEL_SLOTS: 6,
-  PARCEL:{unitsPerSlot:[1,2,4,6,10,15,30], dayReward:[50,75,100,135,170,220,350]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
+  PARCEL:{unitsPerSlot:[1,2,4,6,10,15,30], dayReward:[45,70,90,120,155,200,320]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
   ZONES: [
     // day — день бесплатного открытия; price — цена открытия в день 1, падает линейно до нуля к day
     // day — день бесплатного открытия; hard — цена раннего открытия в 💎 в день 1, падает линейно к day (за нал районы не открываются)
@@ -308,7 +311,8 @@ const CFG = {
     {id:'bmx',   name:'BMX',           buy:400, sell:580, pts:28, tier:3, icon:'🚲'},
     {id:'comp',  name:'Компьютер',     buy:700, sell:980, pts:35, tier:3, icon:'💻'},
   ],
-  TIER_DAY:[1,2,4],            // с какого дня доступен тир (Точка, Магазин, Супермаркет)
+  TIER_DAY:[[1,2,4],[3,3,6],[5,5,7]], // с какого дня доступен тир (Точка, Магазин, Супермаркет) — по районам: каждый день недели что-то открывает, за деньги раньше не купить
+  BIZ_LEVEL_DAY:[1,1,1],       // с какого дня доступен уровень бизнеса (сейчас все с первого; уровни 4–5 в дни 6–7 пробовали — бот сливает в них нал вместо товара, очки падают вдвое)
   EVOLVE_COST:[0,500,3000],    // цена расширения до тира 2 и 3
   TIER_PRICE_BASE:{kiosk:[0,400,2000],biz:[0,1250,6500]}, // минимальная база после расширения (для дешёвых районов)
   TIER_PRICE_MULT:{kiosk:[0,4,5],biz:[0,5,5]},          // база после расширения = max(TIER_PRICE_BASE, цена × множитель) — дорогие районы дорожают пропорционально
@@ -332,7 +336,7 @@ const CFG = {
   ],
   SEIZE_RATIO:1.5, // при дефолте коллекторы забирают точки, начиная с лучшей, пока их стоимость не покроет долг × SEIZE_RATIO
   TAXI_PER_DAY:0,              // бесплатных поездок нет: такси за харду, каждая следующая за день вдвое дороже
-  POLICE:{minFine:15, lapShare:0.5, cashCap:0.2, attempts:3}, // штраф = lapShare × чистая прибыль за круг (точки: продажи×маржа, бизнесы: сбор), не меньше minFine×день и не больше cashCap×наличных
+  POLICE:{dayFine:[20,60,150,400,1000,2500,6000], lapShare:0.5, attempts:3}, // штраф = lapShare × чистая прибыль за круг (точки: продажи×маржа, бизнесы: сбор), не меньше minFine×день и не больше cashCap×наличных
   POT_PER_LAP:5,                                // копилка растёт сама за круг (×день) + все штрафы
   SCATTER:{drops:6, min:5, max:20, rollsChance:0.25, hardChance:0.08}, // 🚚 инкассатор: пачки денег по стройке (×день); часть — ходы 🎲, редко — 💎
   HAZARD:{troubles:3},                  // 🌪 хулиганы: неприятности по стройке
@@ -378,8 +382,8 @@ function buildTiles(){
     if(i===0)o.type='home'; else if(wh.has(i))o.type='wh'; else if(i===20)o.type='bank'; // home — «Старт» в интерфейсе
     else if(i===15){o.type='police';o.zone=-1;} else if(i===25){o.type='pot';o.zone=-1;} else if(i===35){o.type='scatter';o.zone=-1;}
     else if(i===5){o.type='hazard';o.zone=-1;}
-    else if(biz.has(i)){o.type='biz';o.price=rnd(...CFG.BIZ_PRICE[z]);}
-    else{o.price=rnd(...CFG.KIOSK_PRICE[z]);const gs=CFG.GOODS.filter(g=>g.zone===z);o.good=gs[i%gs.length].id;o.base=o.good;}
+    else if(biz.has(i)){o.type='biz';o.price=rnd(...CFG.BIZ_PRICE[z]);o.price0=o.price;}
+    else{o.price=rnd(...CFG.KIOSK_PRICE[z]);o.price0=o.price;const gs=CFG.GOODS.filter(g=>g.zone===z);o.good=gs[i%gs.length].id;o.base=o.good;}
     t.push(o);
   }
   return t;
@@ -417,7 +421,8 @@ async function eventInfo(){
   if((S.loans||[]).length)rows.push(`<div class="row"><span class="n">🏦 Кредиты: −$${loanInterest()} за круг<small>списывается при проходе банка · ${S.loans.map(l=>l.name+' $'+l.principal).join(', ')}</small></span></div>`);
   if(S.jail>0)rows.push(`<div class="row"><span class="n">🚔 Участок<small>осталось попыток на дубль: ${S.jail}</small></span></div>`);
   const now=new Date(),mid=new Date(now);mid.setHours(24,0,0,0);const h=Math.floor((mid-now)/36e5),m=Math.floor(((mid-now)%36e5)/6e4);
-  await modal(`<h2>${rows.length?'📣 Сегодня':'⏱ День '+S.day}</h2>${rows.join('')}<div class="row"><span class="n">⏱ До полуночи ${CFG.REAL_DAYS?h+'ч '+String(m).padStart(2,'0')+'м':'— день переключается вручную'}<small>${S.parcelSent?'поставка ушла':'фура заберёт поставку сама'} · задания сгорают · новый тренд и задания</small></span></div>`,[{t:'Понял',v:1,cls:'ok'}]);
+  const sched=`<div class="row"><span class="n">📅 Неделя<small>каждый день открывает то, что за деньги не купить</small></span></div>`+Array.from({length:CFG.DAYS},(_,k)=>k+1).map(d=>`<div class="row ${d===S.day?'today':d<S.day?'past':''}"><span class="n">День ${d}${d===S.day?' · сегодня':''}<small>${dayUnlocks(d,true).join(' · ')||'—'}</small></span></div>`).join('');
+  await modal(`<h2>${rows.length?'📣 Сегодня':'⏱ День '+S.day}</h2>${rows.join('')}${sched}<div class="row"><span class="n">⏱ До полуночи ${CFG.REAL_DAYS?h+'ч '+String(m).padStart(2,'0')+'м':'— день переключается вручную'}<small>${S.parcelSent?'поставка ушла':'фура заберёт поставку сама'} · задания сгорают · новый тренд и задания</small></span></div>`,[{t:'Понял',v:1,cls:'ok'}]);
 }
 async function eventHub(tab){ if(tab)hubTab=tab;
   const draw=()=>{
@@ -545,7 +550,7 @@ function migrate(){
   if(!S.lastTick)S.lastTick=Date.now(); if(!S.dayDate)S.dayDate=dateKey();
   if(S.loan&&!(S.loans||[]).length){S.loans=[{tier:1,name:'Обычный',principal:S.loan.principal,rate:0.08,strikes:S.loan.strikes||0,maxStrikes:2}];} S.loan=undefined;
   if(!Array.isArray(S.tiles)||S.tiles.length!==40)S.tiles=buildTiles();
-  S.tiles.forEach((t,i)=>{if(t.tier===undefined)t.tier=1;if(t.type==='kiosk'&&t.good&&good(t.good)&&goodTier(good(t.good))!==t.tier)t.tier=goodTier(good(t.good));if(t.type==='kiosk'&&!t.base){const gs=CFG.GOODS.filter(g=>g.zone===t.zone);if(gs.length)t.base=gs[t.i%gs.length].id;}if(t.type==='kiosk'&&t.tier>1){const base=CFG.GOODS.filter(g=>g.zone===t.zone);let g=base[t.i%base.length];for(let k=1;k<t.tier&&g.next;k++)g=good(g.next);if(t.good!==g.id){t.good=g.id;t.goods=0;}t.price=CFG.TIER_PRICE_BASE.kiosk[t.tier-1];}if(t.capLvl===undefined)t.capLvl=1;if(t.salesLvl===undefined)t.salesLvl=1;if(t.goods===undefined)t.goods=0;if(t.type==='kiosk'){t.capLvl=Math.min(t.capLvl,capTab(t).length);t.salesLvl=Math.min(t.salesLvl,salTab(t).length);}});
+  S.tiles.forEach((t,i)=>{if(t.tier===undefined)t.tier=1;if(t.price0===undefined&&(t.type==='kiosk'||t.type==='biz')&&t.zone>=0){const mult=CFG.TIER_PRICE_MULT[t.type],rng=CFG[t.type==='biz'?'BIZ_PRICE':'KIOSK_PRICE'][t.zone];let p=t.price;for(let k=(t.tier||1)-1;k>=1;k--)p=Math.round(p/mult[k]/10)*10;t.price0=Math.min(rng[1],Math.max(rng[0],p));}if(t.type==='kiosk'&&t.good&&good(t.good)&&goodTier(good(t.good))!==t.tier)t.tier=goodTier(good(t.good));if(t.type==='kiosk'&&!t.base){const gs=CFG.GOODS.filter(g=>g.zone===t.zone);if(gs.length)t.base=gs[t.i%gs.length].id;}if(t.type==='kiosk'&&t.tier>1){const base=CFG.GOODS.filter(g=>g.zone===t.zone);let g=base[t.i%base.length];for(let k=1;k<t.tier&&g.next;k++)g=good(g.next);if(t.good!==g.id){t.good=g.id;t.goods=0;}t.price=CFG.TIER_PRICE_BASE.kiosk[t.tier-1];}if(t.capLvl===undefined)t.capLvl=1;if(t.salesLvl===undefined)t.salesLvl=1;if(t.goods===undefined)t.goods=0;if(t.type==='kiosk'){t.capLvl=Math.min(t.capLvl,capTab(t).length);t.salesLvl=Math.min(t.salesLvl,salTab(t).length);}});
   // раскладка сервисных клеток текущей версии — если сохранение из версии с другой раскладкой, подтягиваем типы
   const ref=buildTiles(); S.tiles.forEach((t,i)=>{const r=ref[i];if(r.type!=='kiosk'&&r.type!=='biz'&&t.type!==r.type&&!t.owner){Object.assign(t,r);} if(r.zone===-1)t.zone=-1;});
   if(!S.tiles.some(t=>t.type==='wh')){S.tiles.forEach((t,i)=>{const r=ref[i];if((r.type==='wh'||r.type==='bank')&&t.type!==r.type){Object.assign(t,{type:r.type,owner:null,goods:0,capLvl:1,salesLvl:1,tier:1});}});}
@@ -628,7 +633,7 @@ function lbTimeLeft(){const d=CFG.DAYS-S.day;if(CFG.REAL_DAYS){const now=new Dat
 function slotUnits(){return CFG.PARCEL.unitsPerSlot[Math.min(CFG.DAYS,Math.max(1,S.day))-1];}
 function dayReward(){return CFG.PARCEL.dayReward[Math.min(CFG.DAYS,Math.max(1,S.day))-1];}
 function baseOfGood(g){for(const b of CFG.GOODS.filter(x=>goodTier(x)===1)){let cur=b;for(let k=0;k<3&&cur;k++){if(cur.id===g.id)return b;cur=cur.next?good(cur.next):null;}}return g;}
-function possibleGoods(){return CFG.GOODS.filter(g=>{const b=baseOfGood(g);return S.opened[b.zone]&&S.day>=CFG.TIER_DAY[goodTier(g)-1];});} // что в принципе можно везти сегодня
+function possibleGoods(){return CFG.GOODS.filter(g=>{const b=baseOfGood(g);return S.opened[b.zone]&&S.day>=tierDay(b.zone,goodTier(g));});} // что в принципе можно везти сегодня
 function bestPtsToday(){return Math.max(1,...possibleGoods().map(g=>g.pts));}
 function parcelPts(box){const v=CFG.GOODS.reduce((a,g)=>a+(box[g.id]||0)*g.pts,0);return Math.round(v/(CFG.PARCEL_SLOTS*bestPtsToday())*dayReward());}
 function parcelAutoBox(share){const box={};CFG.GOODS.forEach(g=>box[g.id]=0);const k=slotUnits(),N=Math.max(1,Math.round(slots()*(share==null?1:share)));let used=0;
@@ -647,7 +652,7 @@ function investGaps(){const g=[];
   for(const t of S.tiles){if(!unlocked(t))continue;
     if((t.type==='kiosk'||t.type==='biz')&&!t.owner)g.push(t.price);
     if(t.type==='kiosk'&&t.owner){if(t.capLvl<capTab(t).length)g.push(capCost(t));if(t.salesLvl<salTab(t).length)g.push(salesCost(t));const es=evolveState(t);if(es==='ok'||es==='stats')g.push(evolveCost(t)+(es==='stats'?capCost(t)+salesCost(t):0));}
-    if(t.type==='biz'&&t.owner){if(t.level<CFG.BIZ.maxLevel)g.push(bizUpCost(t));const es=evolveState(t);if(es==='ok'||es==='stats')g.push(evolveCost(t));}}
+    if(t.type==='biz'&&t.owner){if(t.level<CFG.BIZ.maxLevel&&!bizLevelLocked(t))g.push(bizUpCost(t));const es=evolveState(t);if(es==='ok'||es==='stats')g.push(evolveCost(t));}}
   const fill=myKiosks().reduce((a,t)=>a+(cap(t)-t.goods)*buyPrice(t.good),0);if(fill>0)g.push(fill);
   return g.filter(c=>c>S.cash).map(c=>c-S.cash);}
 function loanCollateral(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+assetValue(t),0);}
@@ -671,6 +676,18 @@ function bizIcon(t){return CFG.BIZ_ICONS[t.i]||'🏢';}
 function name(t){return t.type==='biz'?`${bizName(t)}${(t.tier||1)>1?' ('+tname(t).toLowerCase()+')':''}`:`${pointName(t)} (${good(t.good).icon} ${good(t.good).name})`;}
 // расширение: ларёк с максимальными статами переезжает на товар следующего района, бизнес — на цены следующего района
 function evolveTarget(t){const nt=(t.tier||1)+1;return nt<=3?nt:-1;}
+function tierDay(zone,tier){const a=CFG.TIER_DAY[Math.min(zone,CFG.TIER_DAY.length-1)];return a[tier-1]||1;} // день, с которого в районе доступен тир
+function bizLevelDay(L){return CFG.BIZ_LEVEL_DAY[L-1]||1;}
+function bizLevelLocked(t){return t.level<CFG.BIZ.maxLevel&&bizLevelDay(t.level+1)>S.day?bizLevelDay(t.level+1):0;} // 0 — можно качать, иначе день открытия
+function dayUnlocks(d,withZones){const out=[];
+  CFG.ZONES.forEach((z,zi)=>{if(withZones&&z.day===d&&zi>0)out.push(`🗺 ${z.name} — бесплатно`);
+    (CFG.TIER_DAY[zi]||[]).forEach((td,ti)=>{if(td===d&&ti>0)out.push(`🏙 ${z.name}: расширение до «${CFG.TIER_NAMES.kiosk[ti]}» / «${CFG.TIER_NAMES.biz[ti]}»`);});});
+  CFG.BIZ_LEVEL_DAY.forEach((bd,li)=>{if(bd===d&&li>0)out.push(`⇧ Бизнесы: уровень ${li+1}`);});
+  if(d===CFG.BANK_DAY)out.push('🏦 Банк: кредиты');
+  if(d===CFG.TREND_FROM_DAY)out.push(`🔥 Тренд дня: один товар ×${CFG.TREND_MULT}`);
+  if(d===CFG.BLACK_FRIDAY_DAY)out.push(`🛍 Чёрная пятница: продажи ×${CFG.BF_MULT}`);
+  if(d===CFG.DAYS)out.push('🏁 Последний день: вечером итоги');
+  return out;}
 function evolvedPrice(t){const nt=evolveTarget(t);if(nt<0)return t.price;return Math.max(CFG.TIER_PRICE_BASE[t.type][nt-1],Math.round(t.price*CFG.TIER_PRICE_MULT[t.type][nt-1]/10)*10);}
 function evolveCost(t){const nt=evolveTarget(t);if(nt<0)return 0;
   if(t.type==='biz'){const np=evolvedPrice(t),newFee=Math.max(1,Math.round(np*CFG.BIZ.feePct*Math.pow(CFG.BIZ.feeLevelMult,klevel(t)-1)*perk().fee));return Math.max(CFG.EVOLVE_COST[(t.tier||1)]||0,Math.round((newFee-fee(t))*paybackLaps()/10)*10);}
@@ -678,7 +695,7 @@ function evolveCost(t){const nt=evolveTarget(t);if(nt<0)return 0;
 function evolveState(t){ // 'ok' | 'locked:N' | 'stats' | 'max'
   const nt=evolveTarget(t); if(nt<0)return 'max';
   const maxed=t.type==='biz'?t.level>=CFG.BIZ.maxLevel:(t.capLvl>=capTab(t).length&&t.salesLvl>=salTab(t).length);
-  if(!maxed)return 'stats'; if(CFG.TIER_DAY[nt-1]>S.day)return 'locked:'+CFG.TIER_DAY[nt-1]; return 'ok';}
+  if(!maxed)return 'stats'; if(tierDay(t.zone,nt)>S.day)return 'locked:'+tierDay(t.zone,nt); return 'ok';}
 function evolve(t){
   const nt=evolveTarget(t),cost=evolveCost(t);
   track('evolve',{tile:t.i,ttype:t.type,to:nt,cost});
@@ -712,7 +729,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='11.13', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='12.0', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
@@ -800,9 +817,10 @@ function closeModal(v){holdStop();hideTip();const r=modalResolve;modalResolve=nu
 let holdT=null,holdI=null;
 function holdStop(){clearTimeout(holdT);clearInterval(holdI);holdT=holdI=null;}
 ['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,holdStop));
-function hold(btn,fn){
-  btn.addEventListener('pointerdown',e=>{e.preventDefault();holdStop();fn();
-    holdT=setTimeout(()=>{holdI=setInterval(()=>{const b=document.getElementById(btn.id);if(!b||b.disabled)holdStop();else fn();},110);},400);});}
+function hold(btn,fn){ // тап — одно действие; зажатие — серия, через 1,5 с по 3, через 3 с по 10 за тик (fn получает размер шага)
+  if(!btn.id)btn.id='hold_'+Math.random().toString(36).slice(2,8);
+  btn.addEventListener('pointerdown',e=>{e.preventDefault();holdStop();fn(1);let n=0;
+    holdT=setTimeout(()=>{holdI=setInterval(()=>{const b=document.getElementById(btn.id);if(!b||b.disabled)holdStop();else{n++;fn(n<12?1:n<25?3:10);}},120);},350);});}
 
 // ---------- движение ----------
 async function roll(){
@@ -825,7 +843,7 @@ async function roll(){
     S.pos=to;
     const t=S.tiles[S.pos];
     if(S.pos===0) await lapDone(dbl);
-    if(t.type==='bank'&&(S.loans||[]).length){const missed=loanCharge();if(missed&&(S.loans||[]).length){await bankThreat();if(!last)break;}} // прошёл банк — заплатил процент; просрочка — коллекторы тормозят
+    if(t.type==='bank'&&(S.loans||[]).length){const missed=loanCharge();if(missed){if(S.seized)await seizeModal();else if((S.loans||[]).length)await bankThreat();if(!last)break;}} // прошёл банк — заплатил процент; просрочка — коллекторы тормозят; конфискация — своё окно
     if((t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)){
       const biz=t.type==='biz', f=fee(t)*(biz&&last?CFG.BIZ.landMult:1);
       S.cash+=f;S.stat.earned+=f;S.dstat.earned+=f;qProg('earn',f);
@@ -866,11 +884,13 @@ async function lapDone(dbl){
 function loanCharge(){ let missed=false;
   const i=loanInterest(); if(i<=0)return false;
   S.cash-=i;S.stat.interest=(S.stat.interest||0)+i;fly('💵',AT.cash(),AT.tile(20),flyN(i));float(20,'−$'+i+' банк','#ef5350');track('loan_interest',{amt:i,cash:S.cash});
-  if(S.cash<0){missed=true;
+  if(S.cash<0){missed=true;S.seized=null;
     for(const l of (S.loans||[]).slice()){l.strikes++;log(`Ушёл в минус по кредиту «${l.name}»: $${S.cash} (просрочка ${l.strikes}/${l.maxStrikes}).`);track('loan_strike',{tier:l.tier,strikes:l.strikes,cash:S.cash});
       if(l.strikes>=l.maxStrikes){const mine=seizePlan(l.principal);
-        mine.forEach(m=>{const nm=m.type==='biz'?bizName(m):name(m);m.owner=null;m.level=0;m.capLvl=1;m.salesLvl=1;m.goods=0;m.tier=1;log(`Коллекторы забрали ${nm}.`);});
-        toast(`Коллекторы забрали ${mine.length} ${mine.length===1?'точку':'точки'}. Долг «${l.name}» списан, минус закрыт.`,4000);track('loan_default',{tier:l.tier,seized:mine.length});
+        const names=mine.map(m=>m.type==='biz'?bizName(m):pointName(m)+' '+good(m.good).icon);
+        const seizedVal=mine.reduce((a,m)=>a+assetValue(m),0);
+        mine.forEach(m=>{const nm=m.type==='biz'?bizName(m):name(m);m.owner=null;m.level=0;m.capLvl=1;m.salesLvl=1;m.goods=0;m.tier=1;m.price=m.price0||m.price;if(m.type==='kiosk'&&m.base)m.good=m.base;log(`Коллекторы забрали ${nm}.`);});
+        track('loan_default',{tier:l.tier,principal:l.principal,seized:mine.length,tiles:mine.map(m=>m.i),value:seizedVal});S.seized=S.seized||[];S.seized.push({loan:l.name,principal:l.principal,names,value:seizedVal});
         S.loans=S.loans.filter(x=>x!==l);if(S.cash<0)S.cash=0;}}}
   render(); return missed;
 }
@@ -899,8 +919,9 @@ async function land(t){
   if(t.type==='hazard')return hazard();
   if(t.type==='bank')return bank();
   if(t.type==='wh')return shop();
-  if(t.type==='biz')return bizWindow(t);
-  return kioskWindow(t);
+  // точки и бизнесы не открываются сами — строка над доком подсвечивается, окно по тапу
+  render(); const tb=$('tilebar'); if(tb&&!tb.hidden){tb.classList.add('pulse');setTimeout(()=>tb.classList.remove('pulse'),2400);}
+  if(!t.owner&&S.cash>=t.price)hint('tapRow','Остановился на чужой точке — строка внизу открывает карточку и покупку.');
 }
 
 // ---------- окно ларька (KioskWindow) ----------
@@ -961,13 +982,13 @@ async function bizWindow(t){
         <button class="buy" id="bBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button>`);
       $('bBuy').onclick=()=>{track('buy_biz',{tile:t.i,price:t.price});fly('💵',AT.cash(),AT.tile(t.i),flyN(t.price));S.cash-=t.price;t.owner='you';t.level=1;S.stat.bought++;S.dstat.bought++;qProg('buy',1);log(`Купил ${name(t)} за $${t.price}.`);toast('Твой бизнес!');render();draw();};
     } else {
-      const max=t.level>=CFG.BIZ.maxLevel, cost=bizUpCost(t), es=evolveState(t), nt=evolveTarget(t);
-      const evoCard=es==='max'?'':`<div class="up">${helpBtn('Расширение до Сети: сбор пересчитается от новой базы, уровень сохранится.')}<div class="uic">🏙</div><div class="lab">${CFG.TIER_NAMES.biz[nt-1]}</div><div class="nums">${es==='ok'?'<b>готово</b>':es==='stats'?'с ур. '+CFG.BIZ.maxLevel:'с дня '+es.split(':')[1]}</div><button id="bEvo" ${es!=='ok'||S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;
+      const max=t.level>=CFG.BIZ.maxLevel, lockDay=bizLevelLocked(t), cost=bizUpCost(t), es=evolveState(t), nt=evolveTarget(t);
+      const evoCard=es==='max'?'':`<div class="up">${helpBtn('Расширение: здание дорожает в 5 раз, сбор — тоже, уровень сохраняется. Цена — прибавка сбора × окупаемость в проходах (12 в начале недели, к концу короче).')}<div class="uic">🏙</div><div class="lab">${CFG.TIER_NAMES.biz[nt-1]}</div><div class="nums">${es==='ok'?`<b>×${Math.round(evolvedPrice(t)/t.price)} сбор</b><small class="pb">окупится за ${paybackLaps()} проходов</small>`:es==='stats'?'с ур. '+CFG.BIZ.maxLevel:'с дня '+es.split(':')[1]}</div><button id="bEvo" ${es!=='ok'||S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;
       shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">Бизнес</span><span class="lvl">${t.level}</span></div>
         <div class="box"><span>За проход</span><b>$${fee(t)}</b></div>
         <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${fee(t)*CFG.BIZ.landMult}</b></div>
         <div class="two">
-          <div class="up">${helpBtn('Уровень поднимает сбор в 1,6 раза. Цена — прибавка сбора × '+paybackLaps()+' кругов; к концу недели окупаемость короче и прокачка дешевле.')}<div class="uic">⇧</div><div class="lab">Сбор за проход</div><div class="nums">$${fee(t)}${max?'':` <i>→</i> <b>$${Math.round(fee(t)*CFG.BIZ.feeLevelMult)}</b>`}</div><button id="bUp" ${max||S.cash<cost?'disabled':''}>${max?'Макс':'$'+cost}</button></div>
+          <div class="up">${helpBtn('Уровень поднимает сбор в 1,6 раза. Цена — прибавка сбора × '+paybackLaps()+' кругов; к концу недели окупаемость короче и прокачка дешевле.')}<div class="uic">⇧</div><div class="lab">Сбор за проход</div><div class="nums">$${fee(t)}${max?'':` <i>→</i> <b>$${Math.round(fee(t)*CFG.BIZ.feeLevelMult)}</b>`}${max||lockDay?'':`<small class="pb">окупится за ${paybackLaps()} проходов</small>`}</div><button id="bUp" ${max||lockDay||S.cash<cost?'disabled':''}>${max?'Макс':lockDay?'с дня '+lockDay:'$'+cost}</button></div>
           ${evoCard}
         </div>`);
       $('bUp').onclick=()=>{track('upgrade',{tile:t.i,stat:'biz',lvl:t.level+1,cost});fly('💵',AT.cash(),AT.tile(t.i),flyN(cost));S.cash-=cost;t.level++;qProg('upg',1);log(`Прокачал ${name(t)} до ур. ${t.level}.`);render();draw();};
@@ -1003,7 +1024,7 @@ async function shop(){
       ${perk().disc?`<p class="empty">Скидка Джонни ${perk().disc*100}%.</p>`:''}
       ${ks.length?`<button class="buyall" id="wAll" ${need<=0||S.cash<minP?'disabled':''}><span>${need<=0?'Всё заполнено':S.cash>=need?'Закупиться на точки':'На все — самое выгодное'}</span><b>${need<=0?'':'$'+(S.cash>=need?need:S.cash)}</b></button>`:''}
     </div><button class="xclose" id="wNo">✕</button>`; fitCard();
-    $('card').querySelectorAll('button[data-g]').forEach(b=>hold(b,()=>{const g=b.dataset.g,p=buyPrice(g);if(goodCap(g)-stock(g)<=0||S.cash<p)return;if(addGoods(g,1)){S.cash-=p;}draw();render();}));
+    $('card').querySelectorAll('button[data-g]').forEach(b=>{b.id='wb_'+b.dataset.g;hold(b,(k=1)=>{const g=b.dataset.g,p=buyPrice(g);let n=0;while(n<k&&goodCap(g)-stock(g)>0&&S.cash>=p&&addGoods(g,1)){S.cash-=p;n++;}if(n)draw();render();});});
     const all=$('wAll'); if(all)all.onclick=()=>{let spent=0;
       // денег на всё хватает — просто заполнить; не хватает — сначала самое выгодное, по одному кругу продаж на точку, кругами
       if(S.cash>=need){for(const g of CFG.GOODS){const p=buyPrice(g.id);while(goodCap(g.id)-stock(g.id)>0&&S.cash>=p){if(!addGoods(g.id,1))break;S.cash-=p;spent+=p;}}}
@@ -1057,11 +1078,12 @@ async function lockedCard(t){
 }
 
 // ---------- полиция: заплати или сиди, 3 попытки на дубль ----------
+function policeFine(){return Math.max(CFG.POLICE.dayFine[Math.min(S.day,CFG.POLICE.dayFine.length)-1],Math.round(lapNet()*CFG.POLICE.lapShare/10)*10);} // растёт по дням: пол дня или половина чистой прибыли за круг
 async function police(){
   const pts=S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t));
-  const fine=Math.max(CFG.POLICE.minFine*S.day,Math.min(Math.round(lapNet()*CFG.POLICE.lapShare),Math.round(S.cash*CFG.POLICE.cashCap)));
+  const fine=policeFine();
   const v=await modal(`<h2>🚔 NYPD <small>участок</small></h2><p class="t">«Торгуешь без лицензии, приятель». Заплати сейчас — или сиди: ${CFG.POLICE.attempts} броска на дубль, дубль выпускает бесплатно. Не выпал — отпустят, но штраф всё равно снимут, а ходы сгорят.</p>
-    <div class="row"><span class="n">Штраф<small>половина чистой прибыли за круг, не больше 20% наличных · уходит в копилку 🎰</small></span><span class="v">$${fine}</span></div>`,
+    <div class="row"><span class="n">Штраф<small>половина чистой прибыли за круг, не меньше $${CFG.POLICE.dayFine[Math.min(S.day,CFG.POLICE.dayFine.length)-1]} в день ${S.day} · уходит в копилку 🎰</small></span><span class="v">$${fine}</span></div>`,
     [{t:'Заплатить · $'+fine,v:1,cls:'ok',dis:S.cash<fine},{t:`Откупиться · 💎 ${CFG.HARD.bail}`,v:3,cls:'hard',dis:S.hard<CFG.HARD.bail},{t:'Сидеть, ловить дубль',v:0,cls:'bad'}],{sticky:true});
   track('police',{choice:v===3?'bail':v===1?'pay':'sit',fine});
   if(v===3){spendHard(CFG.HARD.bail,AT.tile(15));log(`Откупился от полиции за 💎 ${CFG.HARD.bail}.`);}
@@ -1158,7 +1180,7 @@ async function parcel(forced){
       <div class="bar"><i style="width:${Math.min(100,share)}%"></i></div>`+
       gs.map(g=>{const can=Math.floor(stock(g.id)/k);return `<div class="row"><span class="n">${g.icon} ${g.name} <small>${g.pts} очк./шт · в точках ${stock(g.id)} · хватит на ${can} ${can===1?'место':'мест'}</small></span>
         <div class="qty"><button data-g="${g.id}" data-d="-1" ${box[g.id]<=0?'disabled':''}>−</button><b>${box[g.id]}</b><button data-g="${g.id}" data-d="1" ${n>=N||box[g.id]>=can?'disabled':''}>+</button></div></div>`;}).join('')+
-      `${canSlot?`<div class="row"><span class="n">Ещё одно место в контейнере<small>каждое следующее сегодня вдвое дороже · осталось ${CFG.EXTRA_SLOT.perDay-S.extraSlots}</small></span><span class="qty"><button class="sm hard" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`:''}
+      `${canSlot?`<div class="row"><span class="n">Ещё одно место в контейнере<small>только на сегодня, в полночь сгорает · каждое следующее вдвое дороже · осталось ${CFG.EXTRA_SLOT.perDay-S.extraSlots}</small></span><span class="qty"><button class="sm hard" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`:''}
       <div class="mbtns"><button class="sec sm" id="mAuto">Самое дорогое</button><button class="ok" id="mSend" ${n<=0?'disabled':''}>Отправить · ${p} очк.</button><button class="sec" id="mNo">${forced?'Не отправлять':'Позже'}</button></div>`;
     $('card').querySelectorAll('.qty button').forEach(b=>b.onclick=()=>{const g=b.dataset.g;box[g]=Math.max(0,box[g]+ +b.dataset.d);draw();});
     $('mAuto').onclick=()=>{autofill();draw();};
@@ -1196,6 +1218,14 @@ async function chance(){
 }
 
 // ---------- банк ----------
+async function seizeModal(){ const sz=S.seized||[];S.seized=null;const n=sz.reduce((a,x)=>a+x.names.length,0);
+  toast('🏦 Коллекторы: «Забираем»',2500);
+  await modal(`<h2>🏦 Chase Manhattan <small>коллекторы</small></h2>
+    <p class="t">«Вторая просрочка. Ты в минусе — ${n===1?'точку':n+' точек'} забираем в счёт долга. Долг закрыт, минус тоже.»</p>
+    ${sz.map(x=>`<div class="row"><span class="n">«${x.loan}» $${x.principal}<small>забрали: ${x.names.join(', ')} · вложено в них $${x.value}</small></span><span class="v">−${x.names.length}</span></div>`).join('')}
+    ${(S.loans||[]).length?`<div class="row"><span class="n">Осталось долгов</span><span class="v">${S.loans.length}</span></div>`:''}
+    <p>Точки снова ничьи — можно выкупить заново. Кредиты выдаются, пока нет просрочек.</p>`,[{t:'Понял',v:1,cls:'bad'}],{sticky:true});
+}
 async function bankThreat(){
   const worst=(S.loans||[]).slice().sort((a,b)=>(a.maxStrikes-a.strikes)-(b.maxStrikes-b.strikes))[0];
   const left=worst?worst.maxStrikes-worst.strikes:0;
@@ -1256,10 +1286,8 @@ async function sleep(auto){
   const msgs=[`☀️ День ${S.day}.`];
   CFG.ZONES.forEach((z,zi)=>{if(z.day<=S.day&&!S.opened[zi])msgs.push(openZone(zi,0));});
   {const nz=nextZone();if(nz>0)msgs.push(`${CFG.ZONES[nz].name} откроется в день ${CFG.ZONES[nz].day}${zonePrice(nz)?`, раньше — 💎 ${zonePrice(nz)}`:''}.`);}
-  if(S.day===CFG.BANK_DAY)msgs.push('Открылся банк — кредиты под харду.');
-  if(S.day===CFG.BLACK_FRIDAY_DAY)msgs.push(`🛍 Чёрная пятница: все продажи ×${CFG.BF_MULT}!`);
+  {const u=dayUnlocks(S.day,false);if(u.length)msgs.push('Сегодня открылось: '+u.join(' · ')+'.');}
   if(S.day>=CFG.TREND_FROM_DAY&&S.day!==CFG.BLACK_FRIDAY_DAY){const open=availableGoods(),g=open[Math.floor(Math.random()*open.length)];S.trend=g.id;msgs.push(`Тренд дня: ${g.icon} ${g.name} ×${CFG.TREND_MULT}.`);}
-  if(S.day===CFG.DAYS)msgs.push('Последний день визы. Завтра — домой.');
   log(msgs.join(' '));save();render();flush();
   await modal(`<h2>${msgs[0]}</h2>${msgs.slice(1).map(m=>`<p class="t">${m}</p>`).join('')||'<p>Обычный рабочий день.</p>'}`,[{t:'Поехали',v:1,cls:'ok'}]);
 }
@@ -1483,7 +1511,7 @@ cv.addEventListener('click',e=>{
   if(t.type==='wh')return toast('🏬 Costco. Закупка, когда останавливаешься на клетке. Или такси.');
   if(t.type==='bank'){if(S.day>=CFG.BANK_DAY)bank(true);else toast(`🏦 Банк откроется в день ${CFG.BANK_DAY}.`);return;}
   if(t.type==='hazard')return toast('🌪 Хулиганы: раскидывают неприятности по стройке. Срабатывают при остановке.');
-  if(t.type==='police')return toast('🚔 Полиция: штраф (половина прибыли за круг, не больше 20% наличных) или 3 попытки на дубль.');
+  if(t.type==='police')return toast(`🚔 Полиция: штраф $${policeFine()} (половина прибыли за круг, растёт по дням) или 3 попытки на дубль.`);
   if(t.type==='pot')return toast(`🎰 Копилка: $${S.pot}. Растёт сама и от всех штрафов, забирает тот, кто остановится.`);
   if(t.type==='scatter')return toast('🚚 Инкассатор: раскидывает по стройке деньги, ходы и иногда кристалл. Забираешь при остановке.');
   if(!unlocked(t)){lockedCard(t);return;}
