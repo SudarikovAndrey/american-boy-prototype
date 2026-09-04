@@ -99,7 +99,7 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .fin .finhero{height:96px;position:relative;margin:-4px 0 4px}.finhero .finj{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:64px;line-height:1;transition:transform 1.6s ease-in-out}.finhero .finv{position:absolute;left:50%;top:50%;transform:translate(40px,-60%);font-size:36px;opacity:.9}
 .finhero.fly.go .finj{transform:translate(120px,-140%) rotate(-12deg)}.finhero.sad .finj{filter:grayscale(.4)}
 .fintally .row{padding:5px 0}.fintally .v{font-family:var(--disp);font-size:22px;font-weight:500;min-width:60px;text-align:right}.fintot{border-top:2px solid var(--ink);border-bottom:0;margin-top:4px}.fintot .v{font-size:28px;color:var(--green)}
-.finlb{margin-top:8px}
+.finlb{margin-top:8px}.finlost{border:0;opacity:.8}.finlost .v{color:#6b5f52}
 #card .tabs{display:flex;gap:6px;margin:6px 0 10px}#card .tabs button{flex:1;background:#0001;color:var(--ink);border-radius:10px;padding:7px 4px;font-size:13px;font-weight:700;position:relative}#card .tabs button.on{background:var(--ink);color:var(--cream)}#card .tabs .dot{position:absolute;top:4px;right:6px}
 #tilebar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:var(--cream);color:var(--ink);box-shadow:0 3px 0 #0005;padding:9px 12px;font-size:14px;font-weight:700;text-align:left;margin-bottom:6px}
 #tilebar b{color:var(--red)}
@@ -340,7 +340,7 @@ const CFG = {
     {easy:{id:'buy',goal:1},     hard:{id:'parcel',goal:120}, reward:{rolls:10}},   // д7: контейнер видиков
   ],
   QUEST_EASY_REWARD:{rolls:4},
-  FINAL:{goodsShare:0.5, cashPer:400, cashCap:60, assetsPer:800, assetsCap:60}, // итоги недели: остатки товара в очки ×0.5, нал и активы — по курсу с потолком
+  FINAL:{cashPer:3000, cashCap:15, assetsPer:8000, assetsCap:15}, // итоги недели: символический зачёт нала и активов (не больше 30 очков вместе); остатки товара сгорают — очки только через фуру
   EXTRA_SLOT:{perDay:6},       // докупить место в контейнере — только за харду (HARD.slot), каждое следующее за день вдвое дороже
   STREET_PASS_PER_LEVEL:1,     // $ за проход по клетке закрытого района: × уровень Джонни
   TIER_NAMES:{kiosk:['Точка','Магазин','Супермаркет'],biz:['Бизнес','Сеть','Корпорация']},
@@ -1236,20 +1236,21 @@ async function sleep(auto){
   log(msgs.join(' '));save();render();flush();
   await modal(`<h2>${msgs[0]}</h2>${msgs.slice(1).map(m=>`<p class="t">${m}</p>`).join('')||'<p>Обычный рабочий день.</p>'}`,[{t:'Поехали',v:1,cls:'ok'}]);
 }
-function finalBonuses(){const F=CFG.FINAL;const goodsPts=Math.round(CFG.GOODS.reduce((a,g)=>a+stock(g.id)*g.pts,0)*F.goodsShare);
+function finalBonuses(){const F=CFG.FINAL;const goodsLost=CFG.GOODS.reduce((a,g)=>a+stock(g.id)*g.pts,0),goodsUnits=CFG.GOODS.reduce((a,g)=>a+stock(g.id),0);
   const cashPts=Math.min(F.cashCap,Math.floor(Math.max(0,S.cash)/F.cashPer));const assets=loanCollateral();const assetPts=Math.min(F.assetsCap,Math.floor(assets/F.assetsPer));
-  return{goodsPts,cashPts,assetPts,assets,total:goodsPts+cashPts+assetPts};}
+  return{goodsLost,goodsUnits,cashPts,assetPts,assets,total:cashPts+assetPts};}
 function canFinish(){return !S.finished&&S.day>=CFG.DAYS&&S.parcelSent;}
 async function finish(){
   if(S.finished)return; const base=S.pts,B=finalBonuses(); S.pts+=B.total; S.finished=true;
   const place=lbPlace(),rows=lbRows(),ticket=S.pts>=CFG.TICKET_PTS,L=level(),rm=reachedMilestones();
   track('finish',{pts:S.pts,base,bonus:B,ticket,place,playMs:S.playMs,laps:S.laps});save();render();await flush(true);
-  const lines=[{k:'Поставки за неделю',v:base,ic:'📦'},{k:`Остатки товара в фуру ×${CFG.FINAL.goodsShare}`,v:B.goodsPts,ic:'🧳'},{k:`Нал $${S.cash} → очки`,v:B.cashPts,ic:'💵'},{k:`Точки и бизнесы $${B.assets} → очки`,v:B.assetPts,ic:'🏪'}];
+  const lines=[{k:'Поставки за неделю',v:base,ic:'📦'},{k:`Нал $${S.cash}`,v:B.cashPts,ic:'💵'},{k:`Точки и бизнесы $${B.assets}`,v:B.assetPts,ic:'🏪'}];
   $('card').innerHTML=`<div class="fin"><div class="finhero ${ticket?'fly':'sad'}"><span class="finj">🧢</span><span class="finv">${ticket?'✈️':'🌧'}</span></div>
     <h2 style="justify-content:center">${ticket?'Джонни летит в Россию!':'Джонни остался в Бруклине'}</h2>
     <p class="t" style="text-align:center">${ticket?`Поставки налажены, билет в кармане. Уровень ${L}, принят в банду.`:`Не хватило ${CFG.TICKET_PTS-S.pts} очков до билета. Джонни ждёт следующего шанса.`}</p>
     <div class="fintally">${lines.map((l,i)=>`<div class="row finrow" data-i="${i}"><span class="n">${l.ic} ${l.k}</span><b class="v" data-v="${l.v}">0</b></div>`).join('')}
-      <div class="row fintot"><span class="n">Итого очков</span><b class="v" id="finTot" data-v="${S.pts}">0</b></div></div>
+      <div class="row fintot"><span class="n">Итого очков</span><b class="v" id="finTot" data-v="${S.pts}">0</b></div>
+      ${B.goodsUnits?`<div class="row finlost"><span class="n">🧳 Не влезло в фуру: ${B.goodsUnits} шт<small>это ${B.goodsLost} очков, которые сгорели. Больше мест в фуре — больше очков.</small></span><b class="v">—</b></div>`:''}</div>
     <div class="ms3">${CFG.MILESTONES.map((m,i)=>`<div class="msc ${S.pts>=m.pts?'done':''}"><span class="msi">${['🎫','🎖','🏆'][i]}</span><b>${m.pts}</b><span class="msn">${m.name}</span><i>${S.pts>=m.pts?'✓':'🔒'}</i></div>`).join('')}</div>
     <div class="finlb"><div class="lbcols"><span>Место</span><span>Бруклин · итог</span><span>Награда</span></div>${rows.slice(0,3).map((r,i)=>`<div class="lbrow ${r.you?'me':'p'+(i+1)}"><b class="lbp">${i+1}</b><span class="lbav">${r.you?'🧢':LB_AVA[LB_NAMES.indexOf(r.n)]||'🙂'}</span><span class="lbn">${r.n}<small>🎫 ${r.pts}</small></span><span class="lbr">💎 ${LB_REWARD[i]||0}</span></div>`).join('')}${place>3?`<div class="lbrow me"><b class="lbp">${place}</b><span class="lbav">🧢</span><span class="lbn">${S.player||'Ты'}<small>🎫 ${S.pts}</small></span><span class="lbr">💎 ${LB_REWARD[place-1]||0}</span></div>`:''}</div>
     <div class="row" style="border:0"><span class="n">🎟 Пропуск ур. ${bpLevel()}${S.bp.paid?' · куплен':''} · ⏱ ${minTxt(S.playMs)} за неделю · ${S.laps} кругов</span></div>
@@ -1275,7 +1276,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v10.0. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v10.1. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
