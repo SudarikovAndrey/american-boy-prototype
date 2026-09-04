@@ -67,6 +67,18 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .bpc{position:relative;border-radius:10px;padding:8px 6px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px;justify-content:center;text-align:center}
 .bpc.free{background:#e3efd9}.bpc.paid{background:#f3d9a0}.bpc.lock{opacity:.5;filter:saturate(.5)}.bpc.done{opacity:.85}.bpc.ready{outline:2px solid var(--gold);cursor:pointer;animation:fadeIn .3s}
 .bpc .bpi{font-size:24px;line-height:1}.bpc small{font-size:11px;font-weight:700;color:#2a221c}.bpc i{position:absolute;top:3px;right:5px;font-style:normal;font-size:11px}
+.lbhead{background:#3a352f;color:var(--cream);margin:-14px -14px 8px;padding:12px 14px 12px;border-radius:18px 18px 0 0}
+.lbhead .tabs button{background:#ffffff22;color:var(--cream)}.lbhead .tabs button.on{background:var(--cream);color:var(--ink)}
+.lbt{display:flex;align-items:center;gap:8px;margin-bottom:6px}.lbt b{font:900 22px/1 Impact,'Arial Black',sans-serif;letter-spacing:.02em;flex:1}.lbtimer{font-size:13px;font-weight:700;opacity:.9}
+.lbprog{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-top:8px}.lbhead .bar{background:#0006;height:10px}
+.lbbonus{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-top:8px;opacity:.95}.lbbonus b{text-align:right}
+.lbcols{display:grid;grid-template-columns:44px 1fr auto;gap:8px;padding:2px 10px 6px;font-size:12px;color:#6b5f52;font-weight:700}
+.lblist{max-height:38vh;overflow:auto}
+.lbrow{display:grid;grid-template-columns:34px 34px 1fr auto;gap:8px;align-items:center;background:#fff8e6;border-radius:12px;padding:6px 10px;margin-bottom:6px;box-shadow:0 2px 0 #0002}
+.lbrow.p1{background:linear-gradient(90deg,#c99a2e,#e0b84a);color:#fff}.lbrow.p2{background:linear-gradient(90deg,#4a6a8a,#6a8aa8);color:#fff}.lbrow.p3{background:linear-gradient(90deg,#8a4a3a,#a86a5a);color:#fff}
+.lbrow.me{background:var(--green);color:#fff;margin-top:4px}
+.lbp{font:900 20px/1 Impact,'Arial Black',sans-serif;text-align:center}.lbav{width:34px;height:34px;border-radius:50%;background:#0003;display:flex;align-items:center;justify-content:center;font-size:18px}
+.lbn{font-weight:700;font-size:14px;line-height:1.15;min-width:0}.lbn small{display:block;font-size:12px;opacity:.9}.lbr{font-weight:800;white-space:nowrap}
 #card .tabs{display:flex;gap:6px;margin:6px 0 10px}#card .tabs button{flex:1;background:#0001;color:var(--ink);border-radius:10px;padding:7px 4px;font-size:13px;font-weight:700;position:relative}#card .tabs button.on{background:var(--ink);color:var(--cream)}#card .tabs .dot{position:absolute;top:4px;right:6px}
 #tilebar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:var(--cream);color:var(--ink);box-shadow:0 3px 0 #0005;padding:9px 12px;font-size:14px;font-weight:700;text-align:left;margin-bottom:6px}
 #tilebar b{color:var(--red)}
@@ -388,10 +400,17 @@ async function eventHub(tab){ if(tab)hubTab=tab;
       $('card').querySelectorAll('.bpc.paid.lock').forEach(c=>{if(!S.bp.paid)c.onclick=()=>{const b=$('bpBuy');if(b)b.scrollIntoView({block:'nearest'});toast('🎟 Премиум-линейка открывается с пропуском');};});
       setTimeout(()=>{const r=$('card').querySelector('.bprow:not(.reached)');if(r)r.scrollIntoView({block:'center'});},30);
     } else if(hubTab==='lb'){
-      const rows=lbRows();
-      $('card').innerHTML=`<h2>🏆 Бруклин <small>место ${place} из ${rows.length}</small>${helpBtn('Соседи тоже возят товар в Союз. Считаются очки поставок. Награда в конце недели за три первых места.')}</h2>${tabs}
-        ${rows.map((r,i)=>`<div class="row" style="padding:4px 0;${r.you?'font-weight:800':''}"><span class="n">${i<3?['🥇','🥈','🥉'][i]:(i+1)+'.'} ${r.n}${i<3?`<small>💎 ${LB_REWARD[i]} в конце недели</small>`:''}</span><span class="v">${r.pts}</span></div>`).join('')}
+      const rows=lbRows(), nm=nextMilestone(), prev=reachedMilestones().slice(-1)[0], from=prev?prev.pts:0, to=nm?nm.pts:(prev?prev.pts:CFG.TICKET_PTS);
+      const rowHtml=(r,i,me)=>`<div class="lbrow ${me?'me':i<3?'p'+(i+1):''}"><b class="lbp">${i+1}</b><span class="lbav">${r.you?'🧢':LB_AVA[LB_NAMES.indexOf(r.n)]||'🙂'}</span><span class="lbn">${r.n}<small>🎫 ${r.pts}</small></span><span class="lbr">💎 ${LB_REWARD[i]||0}</span></div>`;
+      $('card').innerHTML=`<div class="lbhead"><div class="lbt"><b>🏆 Бруклин</b>${helpBtn('Соседи тоже возят товар в Союз. Считаются очки поставок. Награда в конце недели — по месту.')}<span class="lbtimer">⏱ ${lbTimeLeft()}</span></div>
+        ${tabs}
+        <div class="lbprog"><span>${nm?nm.name:'Все рубежи взяты'}</span><span>${S.pts} / ${to}</span></div><div class="bar"><i style="width:${nm?Math.min(100,(S.pts-from)/(to-from)*100):100}%"></i></div>
+        ${nm?`<div class="lbbonus"><span>Собери 🎫 ${nm.pts} и получи</span><b>${nm.reward}</b></div>`:''}</div>
+        <div class="lbcols"><span>Место</span><span>Игрок</span><span>Награда</span></div>
+        <div class="lblist">${rows.map((r,i)=>rowHtml(r,i,false)).join('')}</div>
+        ${(()=>{const i=rows.findIndex(r=>r.you);return rowHtml(rows[i],i,true);})()}
         <div class="mbtns"><button class="sec" id="hNo">Закрыть</button></div>`;
+      setTimeout(()=>{const me=$('card').querySelector('.lblist .lbrow:nth-child('+place+')');if(me)me.scrollIntoView({block:'nearest'});},30);
     } else {
     $('card').innerHTML=`<h2>🎫 Билет Джонни <small>Джонни ур. ${L}</small>${helpBtn('Очки поставок — билет Джонни. Награду за задание забрать до полуночи. Район можно открыть раньше за деньги.')}</h2>${tabs}
       ${(()=>{const nm=nextMilestone(),prev=reachedMilestones().slice(-1)[0];const from=prev?prev.pts:0,to=nm?nm.pts:prev.pts;return `<div class="row"><span class="n">${nm?nm.name:'Все рубежи взяты'}<small>${nm?nm.reward:prev.reward}</small></span><span class="v">${S.pts}/${to}</span></div><div class="bar"><i style="width:${nm?Math.min(100,(S.pts-from)/(to-from)*100):100}%"></i></div>`;})()}
@@ -555,7 +574,9 @@ function dayFrac(){if(CFG.REAL_DAYS){const d=new Date();return(d.getHours()*60+d
 function lbPts(b){if(S.finished)return b.fin;const d=Math.min(6.999,S.day-1+dayFrac()),i=Math.floor(d),f=d-i;const cur=LB_CURVE[i]+(LB_CURVE[Math.min(6,i+1)]-LB_CURVE[i])*f;return Math.round(b.fin*Math.pow(cur,b.jit));}
 function lbRows(){const rows=lbBots().map(b=>({n:b.n,pts:lbPts(b)}));rows.push({n:S.player||'Ты',pts:S.pts,you:true});return rows.sort((a,b)=>b.pts-a.pts);}
 function lbPlace(){return lbRows().findIndex(r=>r.you)+1;}
-const LB_REWARD=[10,5,3];
+const LB_REWARD=[10,5,3,2,2,1,1,1,1,1]; // 💎 за место в конце недели
+const LB_AVA=['🧔','👨‍🦲','🕶','🎩','🎧','🧑‍🔧','👨‍🍳','🧢','🌮'];
+function lbTimeLeft(){const d=CFG.DAYS-S.day;if(CFG.REAL_DAYS){const now=new Date(),mid=new Date(now);mid.setHours(24,0,0,0);const h=Math.floor((mid-now)/36e5),m=Math.floor(((mid-now)%36e5)/6e4);return d>0?`${d} дн ${h} ч`:`${h} ч ${m} м`;}return d>0?`${d} дн`:'последний день';}
 function bagCount(){return Object.values(S.bag||{}).reduce((a,b)=>a+b,0);}
 function bagPts(){return CFG.GOODS.reduce((a,g)=>a+(S.bag[g.id]||0)*g.pts,0);}
 function goodTier(g){return g.tier||1;}
@@ -1188,7 +1209,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v9.1. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v9.2. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
