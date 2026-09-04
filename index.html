@@ -384,7 +384,7 @@ function newGame(){
      parcelSent:false,trend:null,loans:[],taxi:CFG.TAXI_PER_DAY,opened:[true,false,false],pot:0,jail:0,jailFine:0,tips:{},log:[],finished:false,stat:{earned:0,sold:0,parcels:0,bought:0},dstat:{earned:0,sold:0,pts:0,bought:0},q:null,bag:{},extraSlots:0,extraSlotsSoft:0,player:null,bp:{claimedFree:0,claimedPaid:0,paid:false},lbSeed:Math.floor(Math.random()*1e9),hard:CFG.START_HARD,taxiRides:0,lastTick:Date.now(),dayDate:dateKey(),runId:Math.random().toString(36).slice(2,10),startedAt:Date.now(),playMs:0,dayMs:{},sessions:1,chunkN:0};
   newQuest();
   log('Бруклин. В кармане $'+S.cash+', виза на 7 дней. Джонни ждёт первую поставку.');
-  save(); render(); track('new_game',{});
+  S.startVersion=VERSION;S.startCfg=cfgHash(); save(); render(); track('new_game',{v:VERSION,cfg:cfgHash()});
   setTimeout(async()=>{await askName();intro();},50);
 }
 // ---------- задания дня: лёгкое (ритм) и сложное (вызов); цели считаются от вчерашнего результата ----------
@@ -703,7 +703,8 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='3.8', LOGK='americanboy_log', FULLK='americanboy_runlog';
+const VERSION='11.4', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
 try{pending=JSON.parse(localStorage.getItem(LOGK)||'[]');}catch(e){pending=[];}
@@ -714,7 +715,7 @@ function track(type,data){
   try{localStorage.setItem(LOGK,JSON.stringify(pending.slice(-400)));}catch(e){}
   if(pending.length>=25)flush();
 }
-function summaryDoc(){const ks=myKiosks();return{runId:S.runId,player:S.player||null,version:VERSION,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
+function summaryDoc(){const ks=myKiosks();return{runId:S.runId,player:S.player||null,version:VERSION,cfg:cfgHash(),startVersion:S.startVersion||null,startCfg:S.startCfg||null,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
       playMin:Math.round((S.playMs||0)/60000*10)/10,dayMin:Object.fromEntries(Object.entries(S.dayMs||{}).map(([d,ms])=>[d,Math.round(ms/60000*10)/10])),sessions:S.sessions||1,
       points:ks.length,biz:S.tiles.filter(t=>t.type==='biz'&&t.owner).length,tiers:ks.map(t=>t.tier).join(''),opened:S.opened,stat:S.stat,finished:!!S.finished,ticket:S.pts>=CFG.TICKET_PTS,chunks:S.chunkN||0,ua:navigator.userAgent.slice(0,80)};}
 // вне артефакта: полный лог партии копится в localStorage, при заданном TELEMETRY_URL уходит туда же порциями
@@ -735,7 +736,7 @@ async function flush(final){
       await db.doc(`runs/${S.runId}/chunks/c${String(S.chunkN).padStart(4,'0')}`).set({events:chunk,n:chunk.length,day:S.day,at:Date.now()});
       try{localStorage.setItem(LOGK,'[]');}catch(e){}}
     const ks=myKiosks();
-    await db.doc(`runs/${S.runId}`).set({runId:S.runId,player:S.player||null,version:VERSION,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
+    await db.doc(`runs/${S.runId}`).set({runId:S.runId,player:S.player||null,version:VERSION,cfg:cfgHash(),startVersion:S.startVersion||null,startCfg:S.startCfg||null,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
       playMin:Math.round((S.playMs||0)/60000*10)/10,dayMin:Object.fromEntries(Object.entries(S.dayMs||{}).map(([d,ms])=>[d,Math.round(ms/60000*10)/10])),sessions:S.sessions||1,
       points:ks.length,biz:S.tiles.filter(t=>t.type==='biz'&&t.owner).length,tiers:ks.map(t=>t.tier).join(''),opened:S.opened,stat:S.stat,finished:!!S.finished,ticket:S.pts>=CFG.TICKET_PTS,chunks:S.chunkN||0,ua:navigator.userAgent.slice(0,80)});
   }catch(e){ /* база недоступна — события остаются в очереди */ }
@@ -1287,7 +1288,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v11.3. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v${VERSION} · баланс ${cfgHash()}. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1382,6 +1383,10 @@ function draw(){
     cx.globalAlpha=lock?0.28:1;
     cx.font=`${Math.round(TW*(lock?0.28:0.34))}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(ic,x,iy);
     cx.globalAlpha=1;
+    if(t.drop){const d=t.drop;
+      if(d.cash>0){drawCoins(x+TW*0.18,y-TH*0.05,coinTier(d.cash));}
+      else{const dic=d.rolls?'🎲':d.hard?'💎':'⚠️';cx.font=`${Math.round(TW*0.3)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(dic,x+TW*0.2,y-TH*0.3);
+        if(d.rolls)outlined(x+TW*0.2,y-TH*0.02,'+'+d.rolls,'#f2b632',TW*0.15);}}
     if(lock)continue;
     if(mine){
       // остаток товара — кольцо вокруг иконки; пусто — красное и клетка пульсирует
@@ -1399,10 +1404,7 @@ function draw(){
     }
     else if(isK||isB)pill(x,y-TH*0.66,'$'+t.price,'#2b2723',TW*0.14);
     if(t.type==='pot')pill(x,y-TH*0.66,'$'+S.pot,'#b8860b',TW*0.14);
-    if(t.drop){const d=t.drop;
-      if(d.cash>0){drawCoins(x+TW*0.18,y-TH*0.05,coinTier(d.cash));}
-      else{const dic=d.rolls?'🎲':d.hard?'💎':'⚠️';cx.font=`${Math.round(TW*0.3)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(dic,x+TW*0.2,y-TH*0.3);
-        if(d.rolls)outlined(x+TW*0.2,y-TH*0.02,'+'+d.rolls,'#f2b632',TW*0.15);}}
+
   }
   drawHero();
   cx.font=`${Math.round(TW*0.34)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';
@@ -1480,7 +1482,7 @@ $('bRoll').onclick=roll;$('bTaxi').onclick=taxi;$('bSettings').onclick=settings;
 window.addEventListener('resize',()=>{fit();draw();if(!$('tip').hidden)positionTip();if(!$('modal').hidden)fitCard();});
 if(window.ResizeObserver)new ResizeObserver(()=>{fit();draw();}).observe(cv);
 if(!load())newGame();else if(S.finished)newGame();else if(!S.player)setTimeout(()=>askName(),50);
-S.sessions=(S.sessions||0)+1;track('session_start',{sessions:S.sessions});
+S.sessions=(S.sessions||0)+1;track('session_start',{sessions:S.sessions,v:VERSION,cfg:cfgHash(),startV:S.startVersion||null});
 fit();{const[g1,g2]=gridOf(S.pos);const[x,y]=iso(g1,g2);cam={x,y:y-TH*0.4};}render();
 </script>
 </body>
