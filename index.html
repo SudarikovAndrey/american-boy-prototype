@@ -8,7 +8,8 @@
 :root{--bg:#2f2c28;--panel:#3a352f;--cream:#efe4cc;--cream2:#e3d6b8;--ink:#2a221c;--mut:#6b5f52;--red:#c9432f;--red2:#a83422;--green:#3f8f4c;--gold:#e0a52a;--line:#d6c8a8;--txt:#efe4cc}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.35 -apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:900px;margin:0 auto;position:relative}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100%;margin:0 auto;position:relative}
+#top>*{width:100%;max-width:520px}
 #top{position:absolute;left:0;right:0;top:0;z-index:35;padding:8px 10px 0;display:flex;flex-direction:column;gap:6px;pointer-events:none;align-items:center}
 .bar0{display:flex;gap:8px;align-items:center;justify-content:center;width:100%}
 .ava{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:var(--cream);color:var(--ink);border:3px solid #8a7e6e;padding:0;line-height:1;box-shadow:0 2px 0 #0004}
@@ -49,7 +50,8 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 #invBtn{background:var(--cream);color:var(--ink);border-radius:14px;padding:6px 10px;font-size:13px;font-weight:700;box-shadow:0 2px 0 #0004;display:flex;flex-direction:column;gap:4px;min-width:104px;text-align:left}
 #invBtn em{font-style:normal;display:flex;justify-content:space-between;gap:8px}
 #invBtn i{display:block;height:5px;border-radius:3px;background:#0002;overflow:hidden}#invBtn i b{display:block;height:100%;background:var(--green);border-radius:3px}
-#panel{background:var(--panel);border-top:2px solid #0006;padding:6px 10px 10px;display:flex;flex-direction:column;gap:6px;position:relative}
+#panel{background:linear-gradient(to bottom,rgba(20,17,14,0) 0,rgba(20,17,14,.55) 40px,rgba(20,17,14,.7) 100%);margin-top:-44px;padding:46px 10px 10px;display:flex;flex-direction:column;gap:6px;align-items:center;position:relative;z-index:5;pointer-events:none}
+#panel>*{pointer-events:auto;width:100%;max-width:520px}
 #dock{display:flex;gap:8px;align-items:flex-end;justify-content:center}
 .diebox{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:-14px}
 .pill{background:var(--cream);color:var(--ink);border-radius:12px;padding:3px 12px;font-weight:800;font-size:15px;box-shadow:0 2px 0 #0004}
@@ -82,6 +84,14 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 #modal{position:fixed;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center;z-index:30}
 @media(min-width:600px){#modal{align-items:center;padding:12px}}
 #modal[hidden]{display:none}
+@keyframes cardIn{from{transform:translateY(36px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+#modal{animation:fadeIn .16s ease-out}#modal .card{animation:cardIn .2s cubic-bezier(.2,.8,.3,1)}
+#modal.closing{animation:none;opacity:0;transition:opacity .15s}#modal.closing .card{animation:none;transform:translateY(30px);opacity:0;transition:transform .15s,opacity .15s}
+#tilebar,#tip,#invList,#toast{animation:slideUp .18s ease-out}
+.dk,.dice,.round,.ava,.chip,.qchip{transition:transform .08s,box-shadow .08s,opacity .2s}.dk:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--red2)}.dk.ok:active:not(:disabled){box-shadow:0 1px 0 #2d6b38}
+.dk:disabled{opacity:.4;filter:saturate(.3)}
 .card{background:var(--cream);color:var(--ink);border-radius:18px 18px 0 0;padding:14px;width:100%;max-width:460px;max-height:88vh;overflow:auto;box-shadow:0 -4px 0 #0004}
 @media(min-width:600px){.card{border-radius:16px}}
 .card h2{margin:0 0 4px;font-size:19px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -156,7 +166,7 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
       <button class="dk" id="bTaxi"><span>🚕</span><small id="tTaxi">💎 1</small></button>
       <button class="dk" id="bShip"><span>📦</span><small id="tShip">собрать</small></button>
       <div class="diebox"><button class="dice" id="bRoll"><span class="die">🎲</span></button><div class="pill" id="sRolls">30</div><div class="pill dark" id="sRollsCap">/30</div></div>
-      <button class="dk" id="bJohnny"><span>🎯</span><small>Задания</small></button>
+      <button class="dk" id="bJohnny"><span>🧢</span><small>Джонни</small></button>
       <button class="dk" id="bShop"><span>🛒</span><small>Магазин</small></button>
     </div>
   </div>
@@ -620,14 +630,17 @@ let toastT;function toast(m,ms){const t=$('toast');t.style.top=($('top').getBoun
 const wait=ms=>CFG.SPEED>=100?Promise.resolve():new Promise(r=>setTimeout(r,ms/CFG.SPEED));
 let modalSticky=false;
 function modal(html,btns,opt){return new Promise(res=>{
-  modalResolve=res;modalSticky=!!(opt&&opt.sticky);
+  modalResolve=res;modalSticky=!!(opt&&opt.sticky);modalSeq++;$('modal').classList.remove('closing');
   setTimeout(()=>{const dc=$('card').querySelector&&document.getElementById('dClaim');if(dc)dc.onclick=()=>{S.q.filter(q=>q.done&&!q.claimed).forEach(q=>{const r=q.reward;if(r.rolls)S.rolls+=r.rolls;if(r.cash)S.cash+=r.cash;q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});});dc.textContent='✓';dc.disabled=true;toast('Награды получены');save();render();};},0);
   $('card').innerHTML=html+'<div class="mbtns">'+btns.map((b,i)=>`<button class="${b.cls||''}" data-i="${i}" ${b.dis?'disabled':''}>${b.t}</button>`).join('')+'</div>';
   $('card').querySelectorAll('.mbtns button').forEach(b=>b.onclick=()=>closeModal(btns[+b.dataset.i].v));
   $('modal').hidden=false;
 });}
-function openCustom(){return new Promise(res=>{modalResolve=res;modalSticky=false;$('modal').hidden=false;});}
-function closeModal(v){holdStop();hideTip();$('modal').hidden=true;const r=modalResolve;modalResolve=null;if(r)r(v);}
+function openCustom(){return new Promise(res=>{modalResolve=res;modalSticky=false;modalSeq++;$('modal').classList.remove('closing');$('modal').hidden=false;});}
+let modalSeq=0;
+function closeModal(v){holdStop();hideTip();const r=modalResolve;modalResolve=null;const my=++modalSeq;const m=$('modal');
+  if(m.hidden||CFG.SPEED>=100){m.hidden=true;}else{m.classList.add('closing');setTimeout(()=>{if(modalSeq===my){m.hidden=true;m.classList.remove('closing');}},150);}
+  if(r)r(v);}
 // кнопка с автоповтором при удержании (MButton_Hold)
 // окно перерисовывается после каждой покупки, кнопка пересоздаётся — поэтому отпускание ловим на документе, а не на кнопке
 let holdT=null,holdI=null;
@@ -1115,7 +1128,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v8.2. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v8.3. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1171,8 +1184,7 @@ function draw(){
   const[cxx,cyy]=iso(5,5);
   cx.fillStyle='#4d473f';cx.font=`${Math.round(TW*0.22)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('BROOKLYN · NY',cxx,cyy);
   const drawHero=()=>{const t=S.tiles[hi],h=tileH(t);
-    cx.fillStyle='#0008';cx.beginPath();cx.ellipse(hx,hy+2,TW*0.16*(1-hop/(TH*2)),TH*0.16*(1-hop/(TH*2)),0,0,Math.PI*2);cx.fill();
-    const hyy=hy-TH*0.8-h*0.2-hop;cx.save();cx.shadowColor='#0009';cx.shadowBlur=4;cx.shadowOffsetY=2;cx.fillStyle='rgba(43,39,35,0.85)';cx.beginPath();cx.arc(hx,hyy,TW*0.23,0,Math.PI*2);cx.fill();cx.restore();
+    const hyy=hy-TH*0.5-h*0.2-hop;cx.save();cx.shadowColor='#0009';cx.shadowBlur=4;cx.shadowOffsetY=2;cx.fillStyle='rgba(43,39,35,0.85)';cx.beginPath();cx.arc(hx,hyy,TW*0.23,0,Math.PI*2);cx.fill();cx.restore();
     cx.strokeStyle='#f1e9d2';cx.lineWidth=2;cx.beginPath();cx.arc(hx,hyy,TW*0.23,0,Math.PI*2);cx.stroke();
     cx.font=`${Math.round(TW*0.36)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('🧢',hx,hyy+1);};
   // подписи поля в стиле HUD: кремовая пилюля, чернильный текст
@@ -1231,24 +1243,25 @@ function draw(){
 }
 function render(){
   $('sDay').textContent=`${S.day}/${CFG.DAYS}`;$('sRolls').textContent=S.rolls+'/'+CFG.ROLLS_PER_DAY;$('sCash').textContent=S.cash;$('sHard').textContent=S.hard;
-  $('tTaxi').textContent='💎 '+taxiPrice();
+  const taxiOn=S.stat.parcels>0||S.day>1, shopOn=S.stat.parcels>0||S.day>1||S.rolls<=0, canShip=!S.parcelSent&&myKiosks().reduce((a,t)=>a+t.goods,0)>0;
+  $('tTaxi').textContent=taxiOn?'💎 '+taxiPrice():'позже';
   const ev=[];if(S.trend)ev.push(`🔥 Тренд: ${good(S.trend).name} ×${CFG.TREND_MULT}`);if(S.day===CFG.BLACK_FRIDAY_DAY)ev.push('🛍×'+CFG.BF_MULT);if((S.loans||[]).length)ev.push('🏦 −$'+loanInterest()+'/круг');
   if(S.jail>0)ev.push(`🚔 ${S.jail} попытки`);
   $('sEvent').hidden=!ev.length;$('sEvent').textContent=ev.join(' · ');
   const ready=(S.q?S.q.some(x=>x.done&&!x.claimed):false)||bpClaimable()>0;
   if(S.q){S.q.forEach((q,i)=>{const el=$('q'+i);if(!el)return;el.hidden=false;const done=q.done&&!q.claimed;el.className='qchip'+(done?' done blink':'');el.querySelector('span').textContent=q.claimed?'✓ '+q.text:done?'🎁 Забрать: '+rwText(q.reward):q.text;el.querySelector('i').style.width=(q.claimed?100:Math.min(100,q.prog/q.goal*100))+'%';});}
-  $('bTaxi').classList.toggle('blink',!moving&&myKiosks().length>0&&myKiosks().reduce((a,t)=>a+t.goods,0)===0&&S.hard>=taxiPrice()&&S.rolls>0);
-  $('bShop').innerHTML=`<span>🛒${S.tips.shopOpened?'':'<i class="dot"></i>'}</span><small>Магазин</small>`;$('bShip').className='dk '+(S.parcelSent?'':'ok');
+  $('bTaxi').classList.toggle('blink',taxiOn&&!moving&&myKiosks().length>0&&myKiosks().reduce((a,t)=>a+t.goods,0)===0&&S.hard>=taxiPrice()&&S.rolls>0);
+  $('bShop').innerHTML=`<span>🛒${S.tips.shopOpened||!shopOn?'':'<i class="dot"></i>'}</span><small>${shopOn?'Магазин':'позже'}</small>`;$('bShip').className='dk '+(canShip?'ok':'');
   {const nm=nextMilestone();$('bHub').textContent=`${ready?'🎁 ':'🎫 '}${S.pts}/${nm?nm.pts:CFG.MILESTONES.slice(-1)[0].pts} · #${lbPlace()}`;}$('bHub').className='chip'+(ready?' okc':'');
-  $('tShip').textContent=S.parcelSent?'ушла':'собрать';
+  $('tShip').textContent=S.parcelSent?'ушла':canShip?'собрать':'нет товара';
   const ks=myKiosks();
   {const tot=ks.reduce((a,t)=>a+t.goods,0),totc=ks.reduce((a,t)=>a+cap(t),0);$('inv').hidden=!ks.length;$('invList').hidden=!invOpen;
    $('invBtn').innerHTML=`<em><span>${invOpen?'▾':'▸'} 📦 Товар</span><span>${tot}/${totc}</span></em><i><b style="width:${totc?Math.round(tot/totc*100):0}%"></b></i>`;
    $('invList').innerHTML=CFG.GOODS.filter(g=>ks.some(t=>t.good===g.id)).map(g=>{const c=ks.filter(t=>t.good===g.id).reduce((s,t)=>s+cap(t),0);return`<span class="${S.trend===g.id?'trend':''}">${g.icon} ${stock(g.id)}/${c}</span>`;}).join('');}
   $('bRoll').disabled=moving||S.finished;$('bRoll').className='dice'+(S.jail>0?' jail':'');
   $('bRoll').querySelector('.die').textContent=S.rolls>0?'🎲':'⏳';renderRolls();
-  $('bTaxi').disabled=moving||S.finished||S.jail>0||S.hard<taxiPrice();
-  $('bHub').disabled=moving;$('bShop').disabled=moving;$('bShip').disabled=moving||S.finished;$('bJohnny').disabled=moving;
+  $('bTaxi').disabled=moving||S.finished||S.jail>0||S.hard<taxiPrice()||!taxiOn;
+  $('bHub').disabled=moving;$('bShop').disabled=moving||!shopOn;$('bShip').disabled=moving||S.finished||!canShip;$('bJohnny').disabled=moving;
   // панель текущей клетки: пока стоишь на точке, бизнесе, Costco или банке — окно можно открыть заново
   const ct=S.tiles[S.pos], tb=$('tilebar'); let tbText=null;
   if(!moving&&!S.finished&&unlocked(ct)){
@@ -1287,7 +1300,7 @@ cv.addEventListener('click',e=>{
   else toast(`${t.type==='biz'?'🏢 '+bizName(t):pointName(t)+' · '+good(t.good).icon+' '+good(t.good).name} · $${t.price} — купить можно, остановившись на клетке.`);
 });
 $('tip').onclick=hideTip;$('modal').addEventListener('click',e=>{if(e.target===$('modal')&&!modalSticky)closeModal();});$('toast').onclick=()=>{clearTimeout(toastT);$('toast').style.opacity=0;$('toast').style.pointerEvents='none';};$('bHub').onclick=()=>{if(!moving)eventHub();};[0,1].forEach(i=>{$('q'+i).onclick=()=>{if(moving)return;const q=S.q[i];if(q&&q.done&&!q.claimed){const r=q.reward;if(r.rolls){fly('🎲',AT.el('q'+i),AT.dice(),3);S.rolls+=r.rolls;}if(r.cash){fly('💵',AT.el('q'+i),AT.cash(),flyN(r.cash),{pulse:'sCash'});S.cash+=r.cash;}q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});toast('Награда получена');save();render();}else eventHub();};});
-$('bJohnnyTop').onclick=()=>{if(!moving)johnny();};$('bJohnny').onclick=()=>{if(!moving)eventHub();};$('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
+$('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('bJohnny').onclick=()=>{if(!moving)johnny();};$('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
 $('bRoll').onclick=roll;$('bTaxi').onclick=taxi;$('bSettings').onclick=settings;$('invBtn').onclick=()=>{invOpen=!invOpen;render();};
 window.addEventListener('resize',()=>{fit();draw();if(!$('tip').hidden)positionTip();});
 if(window.ResizeObserver)new ResizeObserver(()=>{fit();draw();}).observe(cv);
