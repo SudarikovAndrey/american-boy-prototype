@@ -13,21 +13,22 @@ html,body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.35 -apple-s
 #top,#panel,#inv,#tip,#toast{zoom:var(--ui,1)}.nozoom #top,.nozoom #panel,.nozoom #inv,.nozoom #tip,.nozoom #toast{zoom:1}
 .card{zoom:1}
 #toast .tico{width:44px;height:44px;border-radius:12px;background:#2a221c14;display:flex;align-items:center;justify-content:center;font-size:26px;flex:0 0 auto}#toast .ttxt{flex:1;min-width:0;text-align:left}
-#top{position:absolute;left:0;right:0;top:0;z-index:35;padding:8px 10px 0;display:flex;flex-direction:column;gap:6px;pointer-events:none;align-items:center}
+#top{position:absolute;left:0;right:0;top:0;z-index:35;padding:6px 8px 0;display:flex;flex-direction:column;gap:5px;pointer-events:none;align-items:center}
 .bar0{display:flex;gap:8px;align-items:center;justify-content:center;width:100%}
-.ava{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:var(--cream);color:var(--ink);border:3px solid #8a7e6e;padding:0;line-height:1;box-shadow:0 2px 0 #0004}
-.ava span{font-size:22px}.ava small{font-size:9px;font-weight:800}
-.round{width:40px;height:40px;border-radius:50%;background:var(--cream);color:var(--ink);padding:0;font-size:20px;font-weight:800;box-shadow:0 2px 0 #0004;margin-left:auto}
-.cur .ic{width:26px;height:22px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:900;padding:0;background:#555}
+.ava{display:flex;flex-direction:column;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:var(--cream);color:var(--ink);border:3px solid #8a7e6e;padding:0;line-height:1;box-shadow:0 2px 0 #0004}
+.ava span{font-size:20px}.ava small{font-size:9px;font-weight:800}
+.round{width:38px;height:38px;border-radius:50%;background:var(--cream);color:var(--ink);padding:0;font-size:20px;font-weight:800;box-shadow:0 2px 0 #0004;margin-left:auto}
+.cur .ic{width:32px;height:32px;border-radius:0;display:inline-flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:900;padding:0;background:#555;flex:0 0 auto}
 .cur .ic.g{background:#3f8f4c}.cur .ic.b{background:#3e5a8a}.cur .ic.o{background:#e0902a}
-.qchip{position:relative;overflow:hidden;background:var(--cream);color:var(--ink);border:0;border-radius:9px;padding:6px 10px 9px;font-size:12px;font-weight:700;box-shadow:0 2px 0 #0004;text-align:center;line-height:1.15;max-width:46vw}
-.qchip i{position:absolute;left:0;bottom:0;height:4px;background:var(--green);width:0}
-.qchip.done{background:var(--gold)}
+.qchip{position:relative;overflow:hidden;background:#2b2723e6;color:var(--cream);border:0;border-radius:8px;padding:6px 6px 8px;font-size:12px;font-weight:700;box-shadow:none;text-align:center;line-height:1.15;min-height:36px;display:flex;align-items:center;justify-content:center}
+.qchip i{position:absolute;left:0;bottom:0;height:3px;background:var(--green);width:0}
+.qchip.done{background:var(--green);color:#fff}
+.qchip.dark{font-weight:600}
 .qchip.done i{display:none}
 .qchip[hidden]{display:none}
 #top>*{pointer-events:auto}
-.bar1,.bar2{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
-.cur{display:flex;align-items:center;gap:6px;background:var(--cream);color:var(--ink);border-radius:10px;padding:5px 10px 5px 6px;font-weight:800;font-size:16px;box-shadow:0 2px 0 #0004}
+.bar1,.bar2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;align-items:stretch}
+.cur{display:flex;align-items:center;gap:0;background:var(--cream);color:var(--ink);border-radius:8px;padding:0;height:32px;overflow:hidden;font-weight:800;font-size:16px;box-shadow:0 2px 0 #0004}.cur b{flex:1;text-align:right;padding:0 9px}
 .cur i{font-style:normal;background:#fff;border-radius:7px;padding:1px 5px;font-size:14px}
 .cur.ticket{font-weight:600}.cur.ticket b{font-weight:800}
 .cur.hard{background:#3e5a8a;color:#fff}.cur.hard i{background:#2c4470}
@@ -213,8 +214,8 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
       <span class="cur"><i class="ic b">💎</i><b id="sHard">5</b></span>
       <span class="cur"><i class="ic o">📅</i><b id="sDay">1/7</b></span>
     </div>
-    <div class="bar2" id="qrow"><button class="qchip" id="q0"><span></span><i></i></button><button class="qchip" id="q1"><span></span><i></i></button></div>
-    <div class="bar2"><span class="chip" id="sEvent" hidden></span></div>
+    <div class="bar2" id="qrow"><button class="qchip dark" id="sTimer"><span></span></button><button class="qchip" id="q0"><span></span><i></i></button><button class="qchip" id="q1"><span></span><i></i></button></div>
+    <span id="sEvent" hidden></span>
   </div>
   <div id="stage"><canvas id="board"></canvas><div id="inv" hidden><div id="invList" hidden></div><button id="invBtn"></button></div></div>
   <div id="panel">
@@ -1212,7 +1213,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v9.10. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v9.11. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1344,9 +1345,10 @@ function render(){
   $('sDay').textContent=`${S.day}/${CFG.DAYS}`;$('tJ').textContent='ур. '+level();$('sRolls').textContent=S.rolls+'/'+CFG.ROLLS_PER_DAY;$('sCash').textContent=S.cash;$('sHard').textContent=S.hard;
   const taxiOn=S.stat.parcels>0||S.day>1, shopOn=S.stat.parcels>0||S.day>1||S.rolls<=0, canShip=!S.parcelSent&&myKiosks().reduce((a,t)=>a+t.goods,0)>0;
   $('tTaxi').textContent=taxiOn?'💎 '+taxiPrice():'позже';
-  const ev=[];if(S.trend)ev.push(`🔥 Тренд: ${good(S.trend).name} ×${CFG.TREND_MULT}`);if(S.day===CFG.BLACK_FRIDAY_DAY)ev.push('🛍×'+CFG.BF_MULT);if((S.loans||[]).length)ev.push('🏦 −$'+loanInterest()+'/круг');
+  const ev=[];if(S.trend)ev.push(`🔥 ${good(S.trend).name} ×${CFG.TREND_MULT}`);if(S.day===CFG.BLACK_FRIDAY_DAY)ev.push('🛍×'+CFG.BF_MULT);if((S.loans||[]).length)ev.push('🏦 −$'+loanInterest()+'/круг');
   if(S.jail>0)ev.push(`🚔 ${S.jail} попытки`);
-  $('sEvent').hidden=!ev.length;$('sEvent').textContent=ev.join(' · ');
+  $('sEvent').hidden=true;$('sEvent').textContent=ev.join(' · ');
+  {const tm=(()=>{if(!CFG.REAL_DAYS)return `📅 день ${S.day}`;const now=new Date(),mid=new Date(now);mid.setHours(24,0,0,0);const h=Math.floor((mid-now)/36e5),m=Math.floor(((mid-now)%36e5)/6e4);return `⏱ ${h}ч ${String(m).padStart(2,'0')}м`;})();$('sTimer').querySelector('span').textContent=ev.length?ev[0]:tm;$('sTimer').title=ev.join(' · ');}
   const ready=(S.q?S.q.some(x=>x.done&&!x.claimed):false)||bpClaimable()>0;
   if(S.q){S.q.forEach((q,i)=>{const el=$('q'+i);if(!el)return;el.hidden=false;const done=q.done&&!q.claimed;el.className='qchip'+(done?' done blink':'');el.querySelector('span').textContent=q.claimed?'✓ '+q.text:done?'🎁 Забрать: '+rwText(q.reward):q.text;el.querySelector('i').style.width=(q.claimed?100:Math.min(100,q.prog/q.goal*100))+'%';});}
   $('bTaxi').classList.toggle('blink',taxiOn&&!moving&&myKiosks().length>0&&myKiosks().reduce((a,t)=>a+t.goods,0)===0&&S.hard>=taxiPrice()&&S.rolls>0);
@@ -1398,7 +1400,7 @@ cv.addEventListener('click',e=>{
   if(t.owner){t.type==='biz'?bizWindow(t):kioskWindow(t);}
   else toast(`${t.type==='biz'?'🏢 '+bizName(t):pointName(t)+' · '+good(t.good).icon+' '+good(t.good).name} · $${t.price} — купить можно, остановившись на клетке.`);
 });
-$('tip').onclick=hideTip;$('modal').addEventListener('click',e=>{if(e.target===$('modal')&&!modalSticky)closeModal();});$('toast').onclick=()=>{clearTimeout(toastT);$('toast').style.opacity=0;$('toast').style.pointerEvents='none';};$('bHub').onclick=()=>{if(!moving)eventHub();};[0,1].forEach(i=>{$('q'+i).onclick=()=>{if(moving)return;const q=S.q[i];if(q&&q.done&&!q.claimed){const r=q.reward;if(r.rolls){fly('🎲',AT.el('q'+i),AT.dice(),3);S.rolls+=r.rolls;}if(r.cash){fly('💵',AT.el('q'+i),AT.cash(),flyN(r.cash),{pulse:'sCash'});S.cash+=r.cash;}q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});toast('Награда получена');save();render();}else eventHub();};});
+$('tip').onclick=hideTip;$('modal').addEventListener('click',e=>{if(e.target===$('modal')&&!modalSticky)closeModal();});$('toast').onclick=()=>{clearTimeout(toastT);$('toast').style.opacity=0;$('toast').style.pointerEvents='none';};$('bHub').onclick=()=>{if(!moving)eventHub();};$('sTimer').onclick=()=>{if(!moving)eventHub();};[0,1].forEach(i=>{$('q'+i).onclick=()=>{if(moving)return;const q=S.q[i];if(q&&q.done&&!q.claimed){const r=q.reward;if(r.rolls){fly('🎲',AT.el('q'+i),AT.dice(),3);S.rolls+=r.rolls;}if(r.cash){fly('💵',AT.el('q'+i),AT.cash(),flyN(r.cash),{pulse:'sCash'});S.cash+=r.cash;}q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});toast('Награда получена');save();render();}else eventHub();};});
 $('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('bJohnny').onclick=()=>{if(!moving)eventHub();}; /* аватар и кнопка дока открывают ивентовое окно; карточка Джонни — из него */ $('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
 $('bRoll').onclick=roll;$('bTaxi').onclick=taxi;$('bSettings').onclick=settings;$('invBtn').onclick=()=>{invOpen=!invOpen;render();};
 window.addEventListener('resize',()=>{fit();draw();if(!$('tip').hidden)positionTip();if(!$('modal').hidden)fitCard();});
