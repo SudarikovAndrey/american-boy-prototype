@@ -703,7 +703,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='11.6', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='11.7', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
@@ -775,7 +775,7 @@ const wait=ms=>CFG.SPEED>=100?Promise.resolve():new Promise(r=>setTimeout(r,ms/C
 let modalSticky=false;
 function modal(html,btns,opt){return new Promise(res=>{
   modalResolve=res;modalSticky=!!(opt&&opt.sticky);modalSeq++;$('modal').classList.remove('closing');
-  setTimeout(()=>{const dc=$('card').querySelector&&document.getElementById('dClaim');if(dc)dc.onclick=()=>{S.q.filter(q=>q.done&&!q.claimed).forEach(q=>{const r=q.reward;if(r.rolls)S.rolls+=r.rolls;if(r.cash)S.cash+=r.cash;q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});});dc.textContent='✓';dc.disabled=true;toast('Награды получены');save();render();};},0);
+  setTimeout(()=>{const dc=$('card').querySelector&&document.getElementById('dClaim');if(dc)dc.onclick=()=>{S.q.filter(q=>q.done&&!q.claimed).forEach(q=>{const r=q.reward;if(r.rolls){S.rolls+=r.rolls;S.carryRolls=(S.carryRolls||0)+r.rolls;}if(r.cash)S.cash+=r.cash;q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});});dc.textContent='✓';dc.disabled=true;toast('Награды получены');save();render();};},0);
   $('card').innerHTML=html+'<div class="mbtns">'+btns.map((b,i)=>`<button class="${b.cls||''}" data-i="${i}" ${b.dis?'disabled':''}>${b.t}</button>`).join('')+'</div>';
   $('card').querySelectorAll('.mbtns button').forEach(b=>b.onclick=()=>closeModal(btns[+b.dataset.i].v));
   $('modal').hidden=false;
@@ -1236,7 +1236,7 @@ async function sleep(auto){
     ${S.q&&S.q.some(q=>q.done&&!q.claimed)?`<div class="row"><span class="n">🎁 Незабранные награды<small>сгорят с началом нового дня</small></span><button class="sm ok blink" id="dClaim">Забрать</button></div>`:''}`,[{t:'Дальше',v:1,cls:'ok'}],{sticky:false});
   track('day_end',{d,dayMs:(S.dayMs||{})[S.day]||0,points:myKiosks().length,opened:S.opened.filter(Boolean).length,q:S.q.map(q=>({id:q.id,done:q.done,claimed:q.claimed}))});
   S.dstat={earned:0,sold:0,pts:0,bought:0};
-  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.jail=0;S.extraSlots=0;S.extraSlotsSoft=0;newQuest();
+  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY+(S.carryRolls||0);S.carryRolls=0;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.jail=0;S.extraSlots=0;S.extraSlotsSoft=0;newQuest();
   if(S.day>CFG.DAYS)return finish();
   const msgs=[`☀️ День ${S.day}.`];
   CFG.ZONES.forEach((z,zi)=>{if(z.day<=S.day&&!S.opened[zi])msgs.push(openZone(zi,0));});
