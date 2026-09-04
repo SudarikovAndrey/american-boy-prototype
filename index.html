@@ -304,9 +304,10 @@ const CFG = {
           6:'+1 место в контейнере поставки',7:'Товар на Costco на 20% дешевле',8:'Каждая точка продаёт ещё на 1 шт больше за круг',9:'Сборы с точек и бизнесов +50%',10:'+2 места в контейнере поставки'},
   LOANS:[ // до трёх кредитов одновременно; laps — сколько кругов твоей чистой прибыли дают, floor — минимум
     // laps — множитель потенциальной прибыли за круг (продажи всех точек при полном запасе × маржа + сборы бизнесов); hard — взнос хардой
-    {laps:4,  floor:300,  cap:3000,  rate:0.03, strikes:2, hard:3,  name:'Обычный'},
-    {laps:10, floor:1000, cap:10000, rate:0.05, strikes:2, hard:10, name:'Рисковый'},
-    {laps:20, floor:3000, cap:30000, rate:0.08, strikes:2, hard:30, name:'Кабальный'},
+    // сумма = max(прибыль за круг × laps, самая дорогая недоступная сейчас покупка × 1,15), но не больше залога / SEIZE_RATIO × ltv
+    {laps:4,  floor:300,  ltv:0.5, rate:0.03, strikes:2, hard:3,  name:'Обычный'},
+    {laps:10, floor:1000, ltv:0.8, rate:0.05, strikes:2, hard:10, name:'Рисковый'},
+    {laps:20, floor:3000, ltv:1.0, rate:0.08, strikes:2, hard:30, name:'Кабальный'},
   ],
   SEIZE_RATIO:1.5, // при дефолте коллекторы забирают точки, начиная с лучшей, пока их стоимость не покроет долг × SEIZE_RATIO
   TAXI_PER_DAY:0,              // бесплатных поездок нет: такси за харду, каждая следующая за день вдвое дороже
@@ -593,7 +594,18 @@ function bestGood(){const o=availableGoods().slice().sort((a,b)=>a.pts-b.pts);re
 function taxiPrice(){return CFG.HARD.taxi*Math.pow(2,S.taxiRides||0);}
 function lapNet(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+(t.type==='biz'?fee(t):sales(t)*Math.max(0,sellPrice(t.good)-buyPrice(t.good))),0);}
 function lapPotential(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+(t.type==='biz'?fee(t):sales(t)*Math.max(0,sellPrice(t.good)-buyPrice(t.good))),0);}
-function loanAmount(i){const L=CFG.LOANS[i];return Math.min(L.cap,Math.max(L.floor,Math.round(lapPotential()*L.laps/10)*10));}
+// сумма кредита: под что игрок хочет вложиться, чего не может купить сейчас; потолок — залог (точки и бизнесы), который заберут при дефолте
+function investGaps(){const g=[];const nz=nextZone();if(nz>0&&zonePrice(nz)>0)g.push(zonePrice(nz));
+  for(const t of S.tiles){if(!unlocked(t))continue;
+    if((t.type==='kiosk'||t.type==='biz')&&!t.owner)g.push(t.price);
+    if(t.type==='kiosk'&&t.owner){if(t.capLvl<capTab(t).length)g.push(capCost(t));if(t.salesLvl<salTab(t).length)g.push(salesCost(t));const es=evolveState(t);if(es==='ok'||es==='stats')g.push(evolveCost(t)+(es==='stats'?capCost(t)+salesCost(t):0));}
+    if(t.type==='biz'&&t.owner){if(t.level<CFG.BIZ.maxLevel)g.push(bizUpCost(t));const es=evolveState(t);if(es==='ok'||es==='stats')g.push(evolveCost(t));}}
+  const fill=myKiosks().reduce((a,t)=>a+(cap(t)-t.goods)*buyPrice(t.good),0);if(fill>0)g.push(fill);
+  return g.filter(c=>c>S.cash).map(c=>c-S.cash);}
+function loanCollateral(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+assetValue(t),0);}
+function loanAmount(i){const L=CFG.LOANS[i];const cap=Math.floor(loanCollateral()/CFG.SEIZE_RATIO*L.ltv/10)*10;
+  const base=lapPotential()*L.laps, gaps=investGaps(), want=gaps.length?Math.max(...gaps)*1.15:0;
+  let a=Math.max(L.floor,base,Math.min(want,cap)); a=Math.min(a,Math.max(L.floor,cap)); return Math.round(a/10)*10;}
 function softForHard(h){ // сколько нала дал бы магазин за столько же харды (лучший подходящий пакет)
   const pk=CFG.SHOP_SOFT.slice().sort((a,b)=>b.hard-a.hard).find(x=>x.hard<=h)||CFG.SHOP_SOFT[0];return Math.round(softPackAmount(pk.mult)*h/pk.hard);}
 function assetValue(t){if(t.type==='biz'){let v=t.price;for(let l=1;l<t.level;l++)v+=Math.round(t.price*CFG.BIZ.upgradeMult*l);for(let k=1;k<(t.tier||1);k++)v+=CFG.EVOLVE_COST[k];return v;}
@@ -1140,7 +1152,7 @@ async function bank(remote){ // remote — открыт тапом по клет
     $('card').innerHTML=`<h2>🏦 Chase Manhattan <small>${n?n+' из 3 кредитов':'кредиты'}</small>${helpBtn('Деньги сразу, процент списывается каждый круг на старте. Две просрочки — коллекторы забирают точки на 150% долга. Каждый следующий кредит дороже и рискованнее.')}</h2>
       ${S.loans.map((l,i)=>`<div class="row"><span class="n">${l.name}<small>${Math.round(l.rate*100)}% за круг · $${Math.round(l.principal*l.rate)} · просрочек ${l.strikes}/${l.maxStrikes}</small></span><span class="v">$${l.principal}</span><button class="sm ok" data-repay="${i}" ${S.cash<l.principal?'disabled':''}>Погасить</button></div>`).join('')}
       ${n?`<div class="row"><span class="n">Итого процентов за круг</span><span class="v">$${loanInterest()}</span></div><div class="row"><span class="n">При дефолте заберут</span><span class="v">${seizePlan(S.loans.reduce((a,l)=>a+l.principal,0)).length} ${(()=>{const k=seizePlan(S.loans.reduce((a,l)=>a+l.principal,0)).length;return k===1?'точку':k<5?'точки':'точек';})()}</span></div>`:''}
-      ${next?`<div class="row"><span class="n">${next.name} кредит<small>${Math.round(next.rate*100)}% за круг · −$${Math.round(amt*next.rate)} на старте</small></span><button class="sm ${n>=2?'bad':'hard'}" id="lTake" ${S.hard<next.hard?'disabled':''}>Взять $${amt}<small>💎 ${next.hard}</small></button></div>`:(n>=CFG.LOANS.length?'<p>Больше не дают.</p>':overdue?'<p class="t">С просрочкой новый кредит не дают.</p>':remote?'<p>Взять — остановившись на банке. Погасить — в любой момент.</p>':'<p>Один кредит за визит.</p>')}
+      ${next?`<div class="row"><span class="n">${next.name} кредит<small>${Math.round(next.rate*100)}% за круг · −$${Math.round(amt*next.rate)} на старте · залог до $${Math.floor(loanCollateral()/CFG.SEIZE_RATIO*next.ltv/10)*10}</small></span><button class="sm ${n>=2?'bad':'hard'}" id="lTake" ${S.hard<next.hard?'disabled':''}>Взять $${amt}<small>💎 ${next.hard}</small></button></div>`:(n>=CFG.LOANS.length?'<p>Больше не дают.</p>':overdue?'<p class="t">С просрочкой новый кредит не дают.</p>':remote?'<p>Взять — остановившись на банке. Погасить — в любой момент.</p>':'<p>Один кредит за визит.</p>')}
       <div class="mbtns"><button class="sec" id="lNo">Закрыть</button></div>`;
     $('card').querySelectorAll('button[data-repay]').forEach(b=>b.onclick=()=>{const l=S.loans[+b.dataset.repay];fly('💵',AT.cash(),AT.tile(20),flyN(l.principal));S.cash-=l.principal;S.loans.splice(+b.dataset.repay,1);track('loan_repay',{tier:l.tier,amt:l.principal});log(`Погасил кредит «${l.name}» $${l.principal}.`);render();draw();});
     const tk=$('lTake'); if(tk)tk.onclick=()=>{if(!spendHard(next.hard,AT.tile(20)))return;fly('💵',AT.tile(20),AT.cash(),flyN(amt),{pulse:'sCash'});S.loans.push({tier:n+1,name:next.name,principal:amt,rate:next.rate,strikes:0,maxStrikes:next.strikes});S.cash+=amt;S.loanLandN=S.landN;track('loan_take',{tier:n+1,amt,rate:next.rate});log(`Взял кредит «${next.name}» $${amt} под ${Math.round(next.rate*100)}% за круг.`);render();draw();};
@@ -1218,7 +1230,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v9.15. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v9.16. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
