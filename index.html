@@ -83,7 +83,7 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .lblist{max-height:38vh;overflow:auto}
 .lbrow{display:grid;grid-template-columns:34px 34px 1fr auto;gap:8px;align-items:center;background:#fff8e6;border-radius:12px;padding:6px 10px;margin-bottom:6px;box-shadow:0 2px 0 #0002}
 .lbrow.p1{background:linear-gradient(90deg,#c99a2e,#e0b84a);color:#fff}.lbrow.p2{background:linear-gradient(90deg,#4a6a8a,#6a8aa8);color:#fff}.lbrow.p3{background:linear-gradient(90deg,#8a4a3a,#a86a5a);color:#fff}
-.lbrow.me{background:var(--green);color:#fff;margin-top:4px}
+.lbrow.me{background:var(--green);color:#fff;margin-top:4px}.lbrow.you{outline:2px solid var(--green)}
 .lbp{font:500 20px/1 var(--disp);text-align:center}.lbav{width:34px;height:34px;border-radius:50%;background:#0003;display:flex;align-items:center;justify-content:center;font-size:18px}
 .lbn{font-weight:700;font-size:14px;line-height:1.15;min-width:0}.lbn small{display:block;font-size:12px;opacity:.9}.lbr{font-weight:800;white-space:nowrap}
 .card{position:relative}
@@ -94,6 +94,12 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .msbar{position:relative;height:12px;background:var(--cream2);border-radius:6px;margin:22px 0 30px}.msbar i{position:absolute;left:0;top:0;bottom:0;background:var(--green);border-radius:6px;transition:width .4s}
 .msbar .tick{position:absolute;top:-4px;transform:translateX(-50%);text-align:center}.msbar .tick b{display:block;width:4px;height:20px;background:#0004;border-radius:2px;margin:0 auto}.msbar .tick.done b{background:#2d6b38}.msbar .tick small{display:block;font-size:11px;font-weight:700;color:#6b5f52;margin-top:2px}
 .msbar em{position:absolute;top:-22px;transform:translateX(-50%);font-style:normal;font-weight:800;font-size:12px;background:var(--ink);color:var(--cream);padding:2px 6px;border-radius:6px;white-space:nowrap}
+.shop .banner.hasimg{height:126px;min-height:0;background-size:cover;background-position:center;padding:0}
+.shop .banner.hasimg b,.shop .banner.hasimg .big{display:none}.shop .banner.hasimg small{position:absolute;left:10px;bottom:8px;background:#2a221ccc;color:#f1e9d2;padding:3px 8px;border-radius:8px;padding-right:8px;max-width:calc(100% - 20px)}
+.fin .finhero{height:96px;position:relative;margin:-4px 0 4px}.finhero .finj{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:64px;line-height:1;transition:transform 1.6s ease-in-out}.finhero .finv{position:absolute;left:50%;top:50%;transform:translate(40px,-60%);font-size:36px;opacity:.9}
+.finhero.fly.go .finj{transform:translate(120px,-140%) rotate(-12deg)}.finhero.sad .finj{filter:grayscale(.4)}
+.fintally .row{padding:5px 0}.fintally .v{font-family:var(--disp);font-size:22px;font-weight:500;min-width:60px;text-align:right}.fintot{border-top:2px solid var(--ink);border-bottom:0;margin-top:4px}.fintot .v{font-size:28px;color:var(--green)}
+.finlb{margin-top:8px}
 #card .tabs{display:flex;gap:6px;margin:6px 0 10px}#card .tabs button{flex:1;background:#0001;color:var(--ink);border-radius:10px;padding:7px 4px;font-size:13px;font-weight:700;position:relative}#card .tabs button.on{background:var(--ink);color:var(--cream)}#card .tabs .dot{position:absolute;top:4px;right:6px}
 #tilebar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:var(--cream);color:var(--ink);box-shadow:0 3px 0 #0005;padding:9px 12px;font-size:14px;font-weight:700;text-align:left;margin-bottom:6px}
 #tilebar b{color:var(--red)}
@@ -334,10 +340,12 @@ const CFG = {
     {easy:{id:'buy',goal:1},     hard:{id:'parcel',goal:120}, reward:{rolls:10}},   // д7: контейнер видиков
   ],
   QUEST_EASY_REWARD:{rolls:4},
+  FINAL:{goodsShare:0.5, cashPer:400, cashCap:60, assetsPer:800, assetsCap:60}, // итоги недели: остатки товара в очки ×0.5, нал и активы — по курсу с потолком
   EXTRA_SLOT:{perDay:6},       // докупить место в контейнере — только за харду (HARD.slot), каждое следующее за день вдвое дороже
   STREET_PASS_PER_LEVEL:1,     // $ за проход по клетке закрытого района: × уровень Джонни
   TIER_NAMES:{kiosk:['Точка','Магазин','Супермаркет'],biz:['Бизнес','Сеть','Корпорация']},
   BIZ_NAMES:{3:'Прачечная',8:'Пиццерия Луиджи',17:'Тир на променаде',23:'Хот-доги Nathan’s',32:'Автосалон',37:'Ночной клуб'},
+  BIZ_ICONS:{3:'🧺',8:'🍕',17:'🎯',23:'🌭',32:'🚗',37:'🪩'},
   // названия точек по категории (базовый товар) и тиру; товар — отдельный слот
   POINT_NAMES:{gum:['Candy Stand','Smoke Shop','Liquor Store'],cola:['Soda Cart','Beer & Wine','Champagne Bar'],tape:['Music Stall','Sony Center','Hi-Fi Store'],jeans:['Jeans Rack','Levi’s Outlet','Leather & Denim'],sneak:['Sneaker Booth','Foot Locker','Bike & Sport'],vcr:['Video Rental','Camera Shop','Computer World']},              // такси как в коре: доехать до склада/дома без бросков
   ZOOM:4.3,                    // ширина экрана в клетках (меньше = крупнее); колесо и щипок меняют в пределах ZOOM_MIN..ZOOM_MAX
@@ -427,13 +435,13 @@ async function eventHub(tab){ if(tab)hubTab=tab;
       setTimeout(()=>{const r=$('card').querySelector('.bprow:not(.reached)');if(r)r.scrollIntoView({block:'center'});},30);
     } else if(hubTab==='lb'){
       const rows=lbRows(), nm=nextMilestone(), prev=reachedMilestones().slice(-1)[0], from=prev?prev.pts:0, to=nm?nm.pts:(prev?prev.pts:CFG.TICKET_PTS);
-      const rowHtml=(r,i,me)=>`<div class="lbrow ${me?'me':i<3?'p'+(i+1):''}"><b class="lbp">${i+1}</b><span class="lbav">${r.you?'🧢':LB_AVA[LB_NAMES.indexOf(r.n)]||'🙂'}</span><span class="lbn">${r.n}<small>🎫 ${r.pts}</small></span><span class="lbr">💎 ${LB_REWARD[i]||0}</span></div>`;
+      const rowHtml=(r,i,me)=>`<div class="lbrow ${me?'me':i<3?'p'+(i+1):''}${r.you&&!me?' you':''}"><b class="lbp">${i+1}</b><span class="lbav">${r.you?'🧢':LB_AVA[LB_NAMES.indexOf(r.n)]||'🙂'}</span><span class="lbn">${r.n}<small>🎫 ${r.pts}</small></span><span class="lbr">💎 ${LB_REWARD[i]||0}</span></div>`;
       $('card').innerHTML=`<div class="lbhead">${xhead}<div class="lbt"><b>🏆 Бруклин</b>${helpBtn('Соседи тоже возят товар в Союз. Считаются очки поставок. Награда в конце недели — по месту.')}<span class="lbtimer">⏱ ${lbTimeLeft()}</span></div>
         <div class="lbprog"><span>${nm?nm.name:'Все рубежи взяты'}</span><span>${S.pts} / ${to}</span></div><div class="bar"><i style="width:${nm?Math.min(100,(S.pts-from)/(to-from)*100):100}%"></i></div>
         ${nm?`<div class="lbbonus"><span>Собери 🎫 ${nm.pts} и получи</span><b>${nm.reward}</b></div>`:''}</div>
         <div class="lbcols"><span>Место</span><span>Игрок</span><span>Награда</span></div>
-        <div class="lblist">${rows.map((r,i)=>rowHtml(r,i,false)).join('')}</div>
-        ${(()=>{const i=rows.findIndex(r=>r.you);return rowHtml(rows[i],i,true);})()}
+        <div class="lblist">${rows.slice(0,10).map((r,i)=>rowHtml(r,i,r.you)).join('')}</div>
+        ${(()=>{const i=rows.findIndex(r=>r.you);return i>=10?rowHtml(rows[i],i,true):'';})()}
         ${tabs}`;
       setTimeout(()=>{const me=$('card').querySelector('.lblist .lbrow:nth-child('+place+')');if(me)me.scrollIntoView({block:'nearest'});},30);
     } else {
@@ -582,7 +590,7 @@ async function milestoneModal(m){const i=CFG.MILESTONES.indexOf(m),rest=CFG.MILE
   const story=i===0?`Поставки на ${m.pts} очков — Джонни доказал, что умеет работать с нашими. Билет в Россию у него в кармане: в день 8 летит с тобой и вступает в банду.`:i===1?`${m.pts} очков — Джонни уже не просто кореш, а редкий пацан с кейсом. Такими темпами Бруклин запомнит его надолго.`:`${m.pts} очков. Легенда Бруклина — выше только небо. Это максимум, что можно вывезти за неделю.`;
   const cards=rest.length?`<p class="dim" style="margin:10px 0 4px">Не расслабляйся — дальше ещё круче:</p><div class="ms3">${rest.map((r,k)=>`<div class="msc next"><span class="msi">${['🎫','🎖','🏆'][i+1+k]}</span><b>${r.pts}</b><span class="msn">${r.name}</span><small>${r.reward}</small></div>`).join('')}</div><p class="dim">Каждая поставка идёт в счёт, а лидерборд и пропуск считают те же очки.</p>`:'<p class="dim">Все рубежи взяты. Дальше — только место в топе и уровень Джонни.</p>';
   track('milestone',{pts:m.pts,name:m.name});
-  await modal(`<h2>${['🎫','🎖','🏆'][i]} ${m.name}!</h2><p class="t">${story}</p><div class="row"><span class="n">Награда</span><span class="v">${m.reward}</span></div>${cards}`,[{t:rest.length?'Погнали дальше':'Красава',v:1,cls:'ok'}]);}
+  await modal(`<h2>${['🎫','🎖','🏆'][i]} ${m.name}!</h2><p class="t">${story}</p><div class="row"><span class="n">Награда<small>${m.reward}</small></span></div>${cards}`,[{t:rest.length?'Погнали дальше':'Красава',v:1,cls:'ok'}]);}
 function nextMilestone(){return CFG.MILESTONES.find(m=>S.pts<m.pts)||null;}
 function reachedMilestones(){return CFG.MILESTONES.filter(m=>S.pts>=m.pts);}
 function slots(){return CFG.PARCEL_SLOTS+perk().slots+(S.extraSlots||0)+(S.bp&&S.bp.paid?BP.paidSlot:0);}
@@ -607,7 +615,7 @@ function lbPts(b){if(S.finished)return b.fin;const d=Math.min(6.999,S.day-1+dayF
 function lbRows(){const rows=lbBots().map(b=>({n:b.n,pts:lbPts(b)}));rows.push({n:S.player||'Ты',pts:S.pts,you:true});return rows.sort((a,b)=>b.pts-a.pts);}
 function lbPlace(){return lbRows().findIndex(r=>r.you)+1;}
 const LB_REWARD=[10,5,3,2,2,1,1,1,1,1]; // 💎 за место в конце недели
-const LB_AVA=['🧔','👨‍🦲','🕶','🎩','🎧','🧑‍🔧','👨‍🍳','🧢','🌮'];
+const LB_AVA=['🧔','👨‍🦲','🕶','🎩','🎧','🧑‍🔧','👨‍🍳','👨‍🦰','🌮'];
 function lbTimeLeft(){const d=CFG.DAYS-S.day;if(CFG.REAL_DAYS){const now=new Date(),mid=new Date(now);mid.setHours(24,0,0,0);const h=Math.floor((mid-now)/36e5),m=Math.floor(((mid-now)%36e5)/6e4);return d>0?`${d} дн ${h} ч`:`${h} ч ${m} м`;}return d>0?`${d} дн`:'последний день';}
 function bagCount(){return Object.values(S.bag||{}).reduce((a,b)=>a+b,0);}
 function bagPts(){return CFG.GOODS.reduce((a,g)=>a+(S.bag[g.id]||0)*g.pts,0);}
@@ -643,6 +651,7 @@ function takeGoods(g,n){for(const t of myKiosks()){if(t.good!==g||n<=0)continue;
 function tname(t){return CFG.TIER_NAMES[t.type][(t.tier||1)-1];}
 function pointName(t){const b=t.base||(()=>{const gs=CFG.GOODS.filter(g=>g.zone===t.zone);return gs.length?gs[t.i%gs.length].id:'gum';})();const arr=CFG.POINT_NAMES[b]||['Точка','Магазин','Супермаркет'];return arr[Math.min((t.tier||1),3)-1];}
 function bizName(t){return CFG.BIZ_NAMES[t.i]||'Бизнес';}
+function bizIcon(t){return CFG.BIZ_ICONS[t.i]||'🏢';}
 function name(t){return t.type==='biz'?`${bizName(t)}${(t.tier||1)>1?' ('+tname(t).toLowerCase()+')':''}`:`${pointName(t)} (${good(t.good).icon} ${good(t.good).name})`;}
 // расширение: ларёк с максимальными статами переезжает на товар следующего района, бизнес — на цены следующего района
 function evolveTarget(t){const nt=(t.tier||1)+1;return nt<=3?nt:-1;}
@@ -873,8 +882,10 @@ const CAT_NAMES={gum:'Сладости',cola:'Напитки',tape:'Медиа',
 function shopFrame(t,inner){ // компоновка окна точки/бизнеса как в коре: баннер, строка категории с уровнем, блоки
   const g=t.type==='kiosk'?good(t.good):null, title=t.type==='kiosk'?pointName(t):bizName(t), sub=t.type==='kiosk'?`${CAT_NAMES[t.base||'gum']||'Товар'} · ${g.name}`:`${tname(t)} · ${CFG.ZONES[t.zone].name}`;
   $('modal').classList.add('mid'); $('card').className='card bare';
-  $('card').innerHTML=`<div class="shop"><div class="banner"><small>${sub}</small><b>${title}</b><span class="big">${g?g.icon:'🏢'}</span></div>${inner}</div><button class="xclose" id="xNo">✕</button>`;
+  const img=t.type==='kiosk'?`img/pt_${t.base||'gum'}_${t.tier||1}.webp`:`img/biz_${t.i}.webp`;
+  $('card').innerHTML=`<div class="shop"><div class="banner"><small>${sub}</small><b>${title}</b><span class="big">${g?g.icon:bizIcon(t)}</span></div>${inner}</div><button class="xclose" id="xNo">✕</button>`;
   $('xNo').onclick=()=>closeModal(); fitCard();
+  if(!(window.claude&&claude.use)){const bn=$('card').querySelector('.banner'),im=new Image();im.onload=()=>{if(bn.isConnected){bn.classList.add('hasimg');bn.style.backgroundImage=`url(${img})`;fitCard();}};im.src=img;}
 }
 // карточка в компоновке кора должна быть видна целиком: масштаб = свободное место между шапкой и доком / нужная высота
 function fitCard(){try{const c=$('card');if(!c.classList.contains('bare'))return;const sh=c.querySelector('.shop'),x=c.querySelector('.xclose');if(!sh)return;
@@ -918,7 +929,7 @@ async function bizWindow(t){
   const draw=()=>{
     if(!t.owner){
       const f=Math.round(t.price*CFG.BIZ.feePct*perk().fee);
-      shopFrame(t,`<div class="srow"><span class="ico">🏢</span><span class="nm">Бизнес</span>${helpBtn('Сбор при каждом проходе, при остановке — втройне. Прокачка поднимает сбор.')}</div>
+      shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">Бизнес</span>${helpBtn('Сбор при каждом проходе, при остановке — втройне. Прокачка поднимает сбор.')}</div>
         <div class="box"><span>За проход</span><b>$${f}</b></div>
         <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${f*CFG.BIZ.landMult}</b></div>
         <button class="buy" id="bBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button>`);
@@ -926,7 +937,7 @@ async function bizWindow(t){
     } else {
       const max=t.level>=CFG.BIZ.maxLevel, cost=bizUpCost(t), es=evolveState(t), nt=evolveTarget(t);
       const evoCard=es==='max'?'':`<div class="up">${helpBtn('Расширение до Сети: сбор пересчитается от новой базы, уровень сохранится.')}<div class="uic">🏙</div><div class="lab">${CFG.TIER_NAMES.biz[nt-1]}</div><div class="nums">${es==='ok'?'<b>готово</b>':es==='stats'?'с ур. '+CFG.BIZ.maxLevel:'с дня '+es.split(':')[1]}</div><button id="bEvo" ${es!=='ok'||S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;
-      shopFrame(t,`<div class="srow"><span class="ico">🏢</span><span class="nm">Бизнес</span><span class="lvl">${t.level}</span></div>
+      shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">Бизнес</span><span class="lvl">${t.level}</span></div>
         <div class="box"><span>За проход</span><b>$${fee(t)}</b></div>
         <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${fee(t)*CFG.BIZ.landMult}</b></div>
         <div class="two">
@@ -1091,6 +1102,7 @@ async function taxi(){
 
 // ---------- кнопка поставки: открывает окно в любой момент, одна поставка в день ----------
 async function shipClick(){
+  if(canFinish())return finish();
   if(S.parcelSent){toast('Поставка сегодня уже ушла. Следующая — завтра.');return;}
   return parcel();
 }
@@ -1124,7 +1136,7 @@ async function parcel(forced){
     $('mAuto').onclick=()=>{autofill();draw();};
     const mh=$('mSlotH'); if(mh)mh.onclick=()=>{if(spendHard(hp)){track('slot_buy',{cost:hp,cur:'hard'});S.extraSlots++;log(`Докупил место в контейнере за 💎 ${hp}.`);draw();render();}};
     $('mSend').onclick=()=>{const L0=level(),had=S.pts>=CFG.TICKET_PTS,pBefore=S.pts;CFG.GOODS.forEach(g=>{if(box[g.id])fly(g.icon,AT.card(),AT.hub(),Math.min(box[g.id],4),{pulse:'bHub'});});CFG.GOODS.forEach(g=>takeGoods(g.id,box[g.id]));S.pts+=p;S.xp+=p;S.parcelSent=true;S.stat.parcels++;S.dstat.pts+=p;qProg('parcel',p,true);
-      track('parcel',{units:n,pts:p,slots:N,extra:S.extraSlots,forced:!!forced,box});log(`📦 Поставка ушла: ${n} шт, +${p} очков.`);closeModal(1);
+      track('parcel',{units:n,pts:p,slots:N,extra:S.extraSlots,forced:!!forced,box});log(`📦 Поставка ушла: ${n} шт, +${p} очков.`);closeModal(1);if(S.day>=CFG.DAYS)setTimeout(()=>toast('🏁 Последняя поставка недели ушла. Остатки товара, нал и точки пойдут в зачёт — жми «итоги» в доке.',6000),900);
       const L=level();
       (async()=>{const rm=CFG.MILESTONES.filter(m=>S.pts-p<m.pts&&S.pts>=m.pts&&m.pts!==CFG.TICKET_PTS);for(const m of rm)await modal(`<h2>🏆 ${m.name}!</h2><p class="t">${S.pts} очков — рубеж взят. Награда: <b>${m.reward}</b>.</p>`,[{t:'Красава',v:1,cls:'ok'}]);
         {const before=CFG.MILESTONES.filter(m=>pBefore>=m.pts).length;for(const m of CFG.MILESTONES.slice(before).filter(m=>S.pts>=m.pts))await milestoneModal(m);}
@@ -1224,22 +1236,31 @@ async function sleep(auto){
   log(msgs.join(' '));save();render();flush();
   await modal(`<h2>${msgs[0]}</h2>${msgs.slice(1).map(m=>`<p class="t">${m}</p>`).join('')||'<p>Обычный рабочий день.</p>'}`,[{t:'Поехали',v:1,cls:'ok'}]);
 }
+function finalBonuses(){const F=CFG.FINAL;const goodsPts=Math.round(CFG.GOODS.reduce((a,g)=>a+stock(g.id)*g.pts,0)*F.goodsShare);
+  const cashPts=Math.min(F.cashCap,Math.floor(Math.max(0,S.cash)/F.cashPer));const assets=loanCollateral();const assetPts=Math.min(F.assetsCap,Math.floor(assets/F.assetsPer));
+  return{goodsPts,cashPts,assetPts,assets,total:goodsPts+cashPts+assetPts};}
+function canFinish(){return !S.finished&&S.day>=CFG.DAYS&&S.parcelSent;}
 async function finish(){
-  S.finished=true;track('finish',{pts:S.pts,ticket:S.pts>=CFG.TICKET_PTS,playMs:S.playMs,laps:S.laps});save();render();await flush(true);
-  const L=level(),own=S.tiles.filter(t=>t.owner).length,lv=S.tiles.filter(t=>t.owner).reduce((s,t)=>s+klevel(t),0);
-  const rm=reachedMilestones(), tier=rm.length?rm.map(m=>m.name).join(' → '):'Участник';
-  const ticket=S.pts>=CFG.TICKET_PTS;
-  await modal(`<h2>✈️ Виза истекла</h2><p class="t">${ticket?`Поставки налажены. Джонни летит с тобой — <b>уровень ${L}</b>, принят в банду.`:`Поставок не хватило: ${S.pts} из ${CFG.TICKET_PTS} очков. Джонни остался в Бруклине и ждёт следующего шанса.`} Бизнес остаётся Америке.</p>
-    <div class="row"><span class="n">Очки посылок</span><span class="v">${S.pts}</span></div>
-    <div class="row"><span class="n">Рубежи</span><span class="v">${tier}</span></div>
-    <div class="row"><span class="n">🏆 Место в Бруклине</span><span class="v">${lbPlace()}${lbPlace()<=3?' · 💎 '+LB_REWARD[lbPlace()-1]:''}</span></div>
-    <div class="row"><span class="n">🎟 Пропуск</span><span class="v">ур. ${bpLevel()}${S.bp.paid?' · куплен':''}</span></div>${rm.map(m=>`<div class="row" style="padding:3px 0"><span class="n">✓ ${m.name}<small>${m.reward}</small></span></div>`).join('')}
-    <div class="row"><span class="n">Посылок / продано шт</span><span class="v">${S.stat.parcels} / ${S.stat.sold}</span></div>
-    <div class="row"><span class="n">Заработано за неделю</span><span class="v">$${S.stat.earned}</span></div>
-    <div class="row"><span class="n">Точек / сумма уровней</span><span class="v">${own} / ${lv}</span></div>
-    <div class="row"><span class="n">Кругов</span><span class="v">${S.laps}</span></div>
-    <div class="row"><span class="n">⏱ Игра за неделю</span><span class="v">${minTxt(S.playMs)}</span></div>`,[{t:'Новая неделя',v:1,cls:'ok'}]);
-  newGame();
+  if(S.finished)return; const base=S.pts,B=finalBonuses(); S.pts+=B.total; S.finished=true;
+  const place=lbPlace(),rows=lbRows(),ticket=S.pts>=CFG.TICKET_PTS,L=level(),rm=reachedMilestones();
+  track('finish',{pts:S.pts,base,bonus:B,ticket,place,playMs:S.playMs,laps:S.laps});save();render();await flush(true);
+  const lines=[{k:'Поставки за неделю',v:base,ic:'📦'},{k:`Остатки товара в фуру ×${CFG.FINAL.goodsShare}`,v:B.goodsPts,ic:'🧳'},{k:`Нал $${S.cash} → очки`,v:B.cashPts,ic:'💵'},{k:`Точки и бизнесы $${B.assets} → очки`,v:B.assetPts,ic:'🏪'}];
+  $('card').innerHTML=`<div class="fin"><div class="finhero ${ticket?'fly':'sad'}"><span class="finj">🧢</span><span class="finv">${ticket?'✈️':'🌧'}</span></div>
+    <h2 style="justify-content:center">${ticket?'Джонни летит в Россию!':'Джонни остался в Бруклине'}</h2>
+    <p class="t" style="text-align:center">${ticket?`Поставки налажены, билет в кармане. Уровень ${L}, принят в банду.`:`Не хватило ${CFG.TICKET_PTS-S.pts} очков до билета. Джонни ждёт следующего шанса.`}</p>
+    <div class="fintally">${lines.map((l,i)=>`<div class="row finrow" data-i="${i}"><span class="n">${l.ic} ${l.k}</span><b class="v" data-v="${l.v}">0</b></div>`).join('')}
+      <div class="row fintot"><span class="n">Итого очков</span><b class="v" id="finTot" data-v="${S.pts}">0</b></div></div>
+    <div class="ms3">${CFG.MILESTONES.map((m,i)=>`<div class="msc ${S.pts>=m.pts?'done':''}"><span class="msi">${['🎫','🎖','🏆'][i]}</span><b>${m.pts}</b><span class="msn">${m.name}</span><i>${S.pts>=m.pts?'✓':'🔒'}</i></div>`).join('')}</div>
+    <div class="finlb"><div class="lbcols"><span>Место</span><span>Бруклин · итог</span><span>Награда</span></div>${rows.slice(0,3).map((r,i)=>`<div class="lbrow ${r.you?'me':'p'+(i+1)}"><b class="lbp">${i+1}</b><span class="lbav">${r.you?'🧢':LB_AVA[LB_NAMES.indexOf(r.n)]||'🙂'}</span><span class="lbn">${r.n}<small>🎫 ${r.pts}</small></span><span class="lbr">💎 ${LB_REWARD[i]||0}</span></div>`).join('')}${place>3?`<div class="lbrow me"><b class="lbp">${place}</b><span class="lbav">🧢</span><span class="lbn">${S.player||'Ты'}<small>🎫 ${S.pts}</small></span><span class="lbr">💎 ${LB_REWARD[place-1]||0}</span></div>`:''}</div>
+    <div class="row" style="border:0"><span class="n">🎟 Пропуск ур. ${bpLevel()}${S.bp.paid?' · куплен':''} · ⏱ ${minTxt(S.playMs)} за неделю · ${S.laps} кругов</span></div>
+    <div class="mbtns"><button class="ok" id="finOk">Новая неделя</button></div></div>`;
+  // подсчёт с анимацией: строки появляются по очереди, числа бегут
+  const rowsEl=[...$('card').querySelectorAll('.finrow')];rowsEl.forEach(r=>r.style.opacity=0);
+  const countUp=(el,to,ms)=>new Promise(res=>{if(ms<=0){el.textContent=to;return res();}const t0=Date.now();const f=()=>{const p=Math.min(1,(Date.now()-t0)/ms);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)setTimeout(f,16);else res();};f();});
+  (async()=>{let run=0;for(const r of rowsEl){r.style.transition='opacity .25s';r.style.opacity=1;const v=+r.querySelector('.v').dataset.v;await countUp(r.querySelector('.v'),v,CFG.SPEED>=100?0:500);run+=v;$('finTot').textContent=run;await wait(150);}
+    if(ticket){const h=$('card').querySelector('.finhero');if(h)h.classList.add('go');}})();
+  await new Promise(res=>{modalResolve=res;modalSticky=true;$('modal').hidden=false;$('finOk').onclick=()=>closeModal(1);});
+  modalSticky=false; newGame();
 }
 
 // ---------- настройки / читы ----------
@@ -1254,7 +1275,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v9.20. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v10.0. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1343,7 +1364,7 @@ function draw(){
     cx.strokeStyle=t.owner?(t.type==='biz'?'#ffd54f':'#fff8e1'):(lock?'#ffffff12':'#00000033');cx.lineWidth=t.owner?(t.type==='biz'?3:2):1;cx.stroke();
     if(S.trend&&t.good===S.trend&&t.owner&&!lock){cx.strokeStyle='#fff';cx.lineWidth=1;cx.setLineDash([3,3]);cx.stroke();cx.setLineDash([]);}
     let ic='';if(t.type==='home')ic='🏁';else if(t.type==='wh')ic='🏬';else if(t.type==='bank')ic='🏦';else if(t.type==='hazard')ic='🌪';else if(t.type==='police')ic='🚔';else if(t.type==='pot')ic='🎰';else if(t.type==='scatter')ic='🚚';
-    else if(t.type==='biz')ic='🏢';else ic=good(t.good).icon;
+    else if(t.type==='biz')ic=bizIcon(t);else ic=good(t.good).icon;
     const mine=t.owner&&!lock, isK=t.type==='kiosk', isB=t.type==='biz';
     const iy=lock?y-TH*0.02:mine?y-TH*0.08:y-TH*0.02;
     cx.globalAlpha=lock?0.28:1;
@@ -1393,9 +1414,9 @@ function render(){
   const ready=(S.q?S.q.some(x=>x.done&&!x.claimed):false)||bpClaimable()>0;
   if(S.q){S.q.forEach((q,i)=>{const el=$('q'+i);if(!el)return;el.hidden=!!q.claimed;const done=q.done&&!q.claimed;el.className='qchip'+(done?' done blink':'');el.querySelector('span').textContent=q.claimed?'✓ '+q.text:done?'🎁 Забрать: '+rwText(q.reward):q.text;el.querySelector('i').style.width=(q.claimed?100:Math.min(100,q.prog/q.goal*100))+'%';});}
   $('bTaxi').classList.toggle('blink',taxiOn&&!moving&&myKiosks().length>0&&myKiosks().reduce((a,t)=>a+t.goods,0)===0&&S.hard>=taxiPrice()&&S.rolls>0);
-  $('bShop').innerHTML=`<span>🛒${S.tips.shopOpened||!shopOn?'':'<i class="dot"></i>'}</span><small>${shopOn?'Магазин':'позже'}</small>`;$('bShip').className='dk '+(canShip?'ok':'');
+  $('bShop').innerHTML=`<span>🛒${S.tips.shopOpened||!shopOn?'':'<i class="dot"></i>'}</span><small>${shopOn?'Магазин':'позже'}</small>`;$('bShip').className='dk '+((canShip||canFinish())?'ok':'')+(canFinish()?' blink':'');
   {const nm=nextMilestone();$('bHub').textContent=`${ready?'🎁 ':'🎫 '}${S.pts}/${nm?nm.pts:CFG.MILESTONES.slice(-1)[0].pts} · #${lbPlace()}`;}$('bHub').className='chip'+(ready?' okc':'');
-  $('tShip').textContent=S.parcelSent?'ушла':canShip?'собрать':'нет товара';
+  $('tShip').textContent=canFinish()?'итоги':S.parcelSent?'ушла':canShip?'собрать':'нет товара';
   const ks=myKiosks();
   {const tot=ks.reduce((a,t)=>a+t.goods,0),totc=ks.reduce((a,t)=>a+cap(t),0);$('inv').hidden=!ks.length;$('invList').hidden=!invOpen;
    $('invBtn').innerHTML=`<em>📦</em><i><b style="width:${totc?Math.round(tot/totc*100):0}%"></b></i><small>${invOpen?'▾':tot+'/'+totc}</small>`;
@@ -1403,7 +1424,7 @@ function render(){
   $('bRoll').disabled=moving||S.finished;$('bRoll').className='dice'+(S.jail>0?' jail':'');
   $('bRoll').querySelector('.die').textContent=S.rolls>0?'🎲':'⏳';renderRolls();
   $('bTaxi').disabled=moving||S.finished||S.jail>0||S.hard<taxiPrice()||!taxiOn;
-  $('bHub').disabled=moving;$('bShop').disabled=moving||!shopOn;$('bShip').disabled=moving||S.finished||!canShip;$('bJohnny').disabled=moving;
+  $('bHub').disabled=moving;$('bShop').disabled=moving||!shopOn;$('bShip').disabled=moving||S.finished||!(canShip||canFinish());$('bJohnny').disabled=moving;
   // панель текущей клетки: пока стоишь на точке, бизнесе, Costco или банке — окно можно открыть заново
   const ct=S.tiles[S.pos], tb=$('tilebar'); let tbText=null;
   if(!moving&&!S.finished&&unlocked(ct)){
