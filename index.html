@@ -276,7 +276,7 @@ const CFG = {
   SHOP_SOFT:[{mult:1,hard:3},{mult:3,hard:8},{mult:8,hard:20}], // нал за харду: сумма = mult × средняя цена точки лучшего открытого района // цены: сверхурочные, откуп от полиции, такси, место в контейнере, район ($ за 1💎)
   START_CASH: 250,
   PARCEL_SLOTS: 6,
-  PARCEL:{unitsPerSlot:[1,2,3,4,6,8,10], dayReward:[50,70,90,120,150,200,320]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
+  PARCEL:{unitsPerSlot:[1,2,4,6,10,15,30], dayReward:[50,70,90,120,150,200,320]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
   ZONES: [
     // day — день бесплатного открытия; price — цена открытия в день 1, падает линейно до нуля к day
     {name:'Брайтон-Бич', from:1,  to:13, day:1, price:0,    color:'#6aa84f'},
@@ -1287,7 +1287,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v11.0. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v11.1. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
