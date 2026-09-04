@@ -711,7 +711,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='11.11', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='11.12', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
@@ -988,7 +988,7 @@ function addGoods(g,n){ // по кругу, начиная с самых про�
 async function shop(){
   const cash0=S.cash, stock0=myKiosks().reduce((a,t)=>a+t.goods,0);
   const draw=()=>{
-    const gs=CFG.GOODS.filter(g=>goodKiosks(g.id).length); // только товары, под которые есть свои точки
+    const gs=CFG.GOODS.filter(g=>goodKiosks(g.id).length).sort((a,b)=>buyPrice(a.id)-buyPrice(b.id)); // только товары, под которые есть свои точки; от дешёвого к дорогому
     const ks=myKiosks(), need=ks.reduce((s,t)=>s+(cap(t)-t.goods)*buyPrice(t.good),0), minP=Math.min(...ks.filter(t=>t.goods<cap(t)).map(t=>buyPrice(t.good)),Infinity);
     const rows=gs.map(g=>{const kk=goodKiosks(g.id),c=goodCap(g.id),st=stock(g.id),p=buyPrice(g.id),free=c-st,pc=c?Math.round(st/c*100):0;
       return `<div class="wr ${S.trend===g.id?'trend':''}"><span class="ring" style="--p:${pc}%"><i>${g.icon}</i></span><div class="wn">${g.name}${S.trend===g.id?' 🔥×'+CFG.TREND_MULT:''}<small>${[...new Set(kk.map(k=>pointName(k)))].join(', ')} · ⟳ ${goodSales(g.id)}/круг · $${sellPrice(g.id)}</small></div><span class="wq">${st}/${c}</span><button data-g="${g.id}" ${free<=0||S.cash<p?'disabled':''}>${free<=0?'Полно':'+1 · $'+p}</button></div>`;}).join('');
