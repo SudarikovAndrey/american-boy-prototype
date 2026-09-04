@@ -43,14 +43,14 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .chip[hidden]{display:none}
 #stage{flex:1;min-height:0;position:relative}
 #board{width:100%;height:100%;display:block;touch-action:none}
-#inv{position:absolute;left:8px;bottom:10px;display:flex;flex-direction:column;gap:5px;z-index:4}
+#inv{position:absolute;left:8px;bottom:calc(var(--panelH,150px) + 8px);display:flex;flex-direction:column;gap:5px;z-index:4}
 #invList{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
 #invList span{background:var(--cream);color:var(--ink);border-radius:20px;padding:4px 10px 4px 6px;font-size:13px;font-weight:700;box-shadow:0 2px 0 #0004}
 #invList span.trend{outline:2px solid var(--gold)}
 #invBtn{background:var(--cream);color:var(--ink);border-radius:14px;padding:6px 10px;font-size:13px;font-weight:700;box-shadow:0 2px 0 #0004;display:flex;flex-direction:column;gap:4px;min-width:104px;text-align:left}
 #invBtn em{font-style:normal;display:flex;justify-content:space-between;gap:8px}
 #invBtn i{display:block;height:5px;border-radius:3px;background:#0002;overflow:hidden}#invBtn i b{display:block;height:100%;background:var(--green);border-radius:3px}
-#panel{background:linear-gradient(to bottom,rgba(20,17,14,0) 0,rgba(20,17,14,.55) 40px,rgba(20,17,14,.7) 100%);margin-top:-44px;padding:46px 10px 10px;display:flex;flex-direction:column;gap:6px;align-items:center;position:relative;z-index:5;pointer-events:none}
+#panel{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(to bottom,rgba(20,17,14,0) 0,rgba(20,17,14,.6) 45%,rgba(20,17,14,.92) 100%);padding:70px 10px 10px;display:flex;flex-direction:column;gap:6px;align-items:center;z-index:5;pointer-events:none}
 #panel>*{pointer-events:auto;width:100%;max-width:520px}
 #dock{display:flex;gap:8px;align-items:flex-end;justify-content:center}
 .diebox{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:-14px}
@@ -1128,7 +1128,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v8.3. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v8.4. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1148,7 +1148,9 @@ const cv=$('board'),cx=cv.getContext('2d');
 let TW=60,TH=30,OX=0,OY=0;
 function gridOf(i){if(i<10)return[10-i,10];if(i<20)return[0,20-i];if(i<30)return[i-20,0];return[10,i-30];}
 function iso(gx,gy){return[OX+(gx-gy)*TW/2,OY+(gx+gy)*TH/2];}
+function panelH(){const p=$('panel');const h=(p&&p.offsetHeight)||0;return h>20?h-40:0;} // док лежит поверх поля; часть его высоты — прозрачный градиент
 function fit(){
+  try{document.documentElement.style.setProperty('--panelH',(($('panel')&&$('panel').offsetHeight)||150)+'px');}catch(e){}
   const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
   cv.width=r.width*dpr;cv.height=r.height*dpr;cx.setTransform(dpr,0,0,dpr,0,0);
   TW=Math.max(56,Math.min(130,r.width/CFG.ZOOM));TH=TW*0.58;OX=0;OY=0;
@@ -1178,7 +1180,7 @@ function draw(){
   if(camHold&&Date.now()<camHold.until)camT={x:camHold.x,y:camHold.y};else{camHold=null;camT={x:hx,y:hy-TH*0.9};}
   cam.x+=(camT.x-cam.x)*0.18;cam.y+=(camT.y-cam.y)*0.18;
   camMoving=Math.hypot(camT.x-cam.x,camT.y-cam.y)>0.5;
-  cx.save();cx.translate(r.width/2-cam.x+pan.x,r.height/2-cam.y+pan.y);
+  cx.save();cx.translate(r.width/2-cam.x+pan.x,(r.height-panelH())/2-cam.y+pan.y);
   const order=S.tiles.slice().sort((a,b)=>{const[ax,ay]=gridOf(a.i),[bx,by]=gridOf(b.i);return(ax+ay)-(bx+by);});
   cx.beginPath();const c=[iso(1,1),iso(9,1),iso(9,9),iso(1,9)];cx.moveTo(c[0][0],c[0][1]);c.forEach(p=>cx.lineTo(p[0],p[1]));cx.closePath();cx.fillStyle='#3a3630';cx.fill();
   const[cxx,cyy]=iso(5,5);
@@ -1283,7 +1285,7 @@ cv.addEventListener('pointermove',e=>{if(!pd)return;const dx=e.clientX-pd.x,dy=e
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>cv.addEventListener(ev,()=>{pd=null;}));
 cv.addEventListener('click',e=>{
   if(dragging){dragging=false;return;}
-  const r=cv.getBoundingClientRect(),sx=e.clientX-r.left-(r.width/2-cam.x+pan.x),sy=e.clientY-r.top-(r.height/2-cam.y+pan.y);
+  const r=cv.getBoundingClientRect(),sx=e.clientX-r.left-(r.width/2-cam.x+pan.x),sy=e.clientY-r.top-((r.height-panelH())/2-cam.y+pan.y);
   const gx=Math.round((sx/(TW/2)+sy/(TH/2))/2-0.5),gy=Math.round((sy/(TH/2)-sx/(TW/2))/2-0.5);
   const t=S.tiles.find(t=>{const[a,b]=gridOf(t.i);return a===gx&&b===gy;});if(!t)return;
   if(moving||S.finished){return;}
@@ -1300,7 +1302,7 @@ cv.addEventListener('click',e=>{
   else toast(`${t.type==='biz'?'🏢 '+bizName(t):pointName(t)+' · '+good(t.good).icon+' '+good(t.good).name} · $${t.price} — купить можно, остановившись на клетке.`);
 });
 $('tip').onclick=hideTip;$('modal').addEventListener('click',e=>{if(e.target===$('modal')&&!modalSticky)closeModal();});$('toast').onclick=()=>{clearTimeout(toastT);$('toast').style.opacity=0;$('toast').style.pointerEvents='none';};$('bHub').onclick=()=>{if(!moving)eventHub();};[0,1].forEach(i=>{$('q'+i).onclick=()=>{if(moving)return;const q=S.q[i];if(q&&q.done&&!q.claimed){const r=q.reward;if(r.rolls){fly('🎲',AT.el('q'+i),AT.dice(),3);S.rolls+=r.rolls;}if(r.cash){fly('💵',AT.el('q'+i),AT.cash(),flyN(r.cash),{pulse:'sCash'});S.cash+=r.cash;}q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});toast('Награда получена');save();render();}else eventHub();};});
-$('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('bJohnny').onclick=()=>{if(!moving)johnny();};$('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
+$('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('bJohnny').onclick=()=>{if(!moving)eventHub();}; // и аватар, и кнопка дока открывают ивентовое окно; карточка Джонни — из него$('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
 $('bRoll').onclick=roll;$('bTaxi').onclick=taxi;$('bSettings').onclick=settings;$('invBtn').onclick=()=>{invOpen=!invOpen;render();};
 window.addEventListener('resize',()=>{fit();draw();if(!$('tip').hidden)positionTip();});
 if(window.ResizeObserver)new ResizeObserver(()=>{fit();draw();}).observe(cv);
