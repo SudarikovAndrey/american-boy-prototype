@@ -252,7 +252,7 @@ const CFG = {
     {easy:{id:'buy',goal:1},     hard:{id:'parcel',goal:120}, reward:{rolls:10}},   // д7: контейнер видиков
   ],
   QUEST_EASY_REWARD:{rolls:4},
-  EXTRA_SLOT:{perDay:6, priceMult:3}, // докупить место в контейнере: цена = priceMult × закупка лучшего товара, каждый следующий за день вдвое дороже
+  EXTRA_SLOT:{perDay:6, softPerDay:2, priceMult:3}, // softPerDay — сколько мест в день можно взять за нал, остальные только за харду // докупить место в контейнере: цена = priceMult × закупка лучшего товара, каждый следующий за день вдвое дороже
   TIER_NAMES:{kiosk:['Точка','Магазин','Супермаркет'],biz:['Бизнес','Сеть','Корпорация']},
   BIZ_NAMES:{3:'Прачечная',8:'Пиццерия Луиджи',17:'Тир на променаде',23:'Хот-доги Nathan’s',32:'Автосалон',37:'Ночной клуб'},
   // названия точек по категории (базовый товар) и тиру; товар — отдельный слот
@@ -288,11 +288,11 @@ function buildTiles(){
 }
 function newGame(){
   S={day:1,rolls:CFG.ROLLS_PER_DAY,overtime:0,cash:CFG.START_CASH,pts:0,xp:0,pos:0,laps:0,tiles:buildTiles(),
-     parcelSent:false,trend:null,loans:[],taxi:CFG.TAXI_PER_DAY,opened:[true,false,false],pot:0,jail:0,jailFine:0,tips:{},log:[],finished:false,stat:{earned:0,sold:0,parcels:0,bought:0},dstat:{earned:0,sold:0,pts:0,bought:0},q:null,bag:{},extraSlots:0,bp:{claimedFree:0,claimedPaid:0,paid:false},lbSeed:Math.floor(Math.random()*1e9),hard:CFG.START_HARD,taxiRides:0,lastTick:Date.now(),dayDate:dateKey(),runId:Math.random().toString(36).slice(2,10),startedAt:Date.now(),playMs:0,dayMs:{},sessions:1,chunkN:0};
+     parcelSent:false,trend:null,loans:[],taxi:CFG.TAXI_PER_DAY,opened:[true,false,false],pot:0,jail:0,jailFine:0,tips:{},log:[],finished:false,stat:{earned:0,sold:0,parcels:0,bought:0},dstat:{earned:0,sold:0,pts:0,bought:0},q:null,bag:{},extraSlots:0,extraSlotsSoft:0,player:null,bp:{claimedFree:0,claimedPaid:0,paid:false},lbSeed:Math.floor(Math.random()*1e9),hard:CFG.START_HARD,taxiRides:0,lastTick:Date.now(),dayDate:dateKey(),runId:Math.random().toString(36).slice(2,10),startedAt:Date.now(),playMs:0,dayMs:{},sessions:1,chunkN:0};
   newQuest();
   log('Бруклин. В кармане $'+S.cash+', виза на 7 дней. Джонни ждёт первую поставку.');
   save(); render(); track('new_game',{});
-  setTimeout(()=>intro(),50);
+  setTimeout(async()=>{await askName();intro();},50);
 }
 // ---------- задания дня: лёгкое (ритм) и сложное (вызов); цели считаются от вчерашнего результата ----------
 const QTEXT={sell:g=>`Продай ${g} шт`,buy:g=>`Купи ${g} ${g===1?'точку':'точки'}`,upg:g=>`Прокачай ${g} раз`,parcel:g=>`Поставка на ${g}+ очков`,earn:g=>`Заработай $${g}`};
@@ -383,6 +383,15 @@ async function johnny(){
 }
 
 // ---------- онбординг: вводные экраны + подсказки по одному разу ----------
+async function askName(){ if(S.player)return;
+  $('card').innerHTML=`<h2>🧢 Кто играет?</h2><p class="t">Имя нужно, чтобы отличать партии команды в телеметрии. Видно только в разборе.</p>
+    <div class="row"><input type="text" id="pName" maxlength="24" placeholder="Имя или ник" autocomplete="off" style="flex:1;font-size:16px;padding:8px 10px"></div>
+    <div class="mbtns"><button class="ok" id="pOk">Поехали</button></div>`;
+  const done=()=>{const v=($('pName').value||'').trim().slice(0,24);S.player=v||'Аноним';track('player',{name:S.player});save();closeModal();};
+  $('pOk').onclick=done; $('pName').onkeydown=e=>{if(e.key==='Enter')done();};
+  setTimeout(()=>{try{$('pName').focus();}catch(e){}},50);
+  modalSticky=true; await openCustom(); modalSticky=false;
+}
 async function intro(){
   const pages=[
     `<h2>🧢 Америкэн бой</h2><div class="intro"><p>Ты на неделю в Бруклине. Встречает <b>Джонни</b> — местный. Он знает: Россия — страна возможностей, и работа с русскими пацанами для него — билет туда.</p><p>Уговор такой: Джонни крутится с тобой неделю и <b>организует поставки в бывший Союз</b>. Набьёте <b>${CFG.TICKET_PTS} очков</b> поставок — ты принимаешь его в банду.</p></div>`,
@@ -407,7 +416,7 @@ function save(){try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}}
 function dateKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
 function migrate(){
   const d={overtime:0,pts:0,xp:0,laps:0,parcelSent:false,trend:null,loans:[],taxi:CFG.TAXI_PER_DAY,opened:[true,false,false],pot:0,jail:0,jailFine:0,tips:{},log:[],finished:false,
-    stat:{earned:0,sold:0,parcels:0,bought:0},dstat:{earned:0,sold:0,pts:0,bought:0},bag:{},extraSlots:0,bp:{claimedFree:0,claimedPaid:0,paid:false},lbSeed:Math.floor(Math.random()*1e9),hard:CFG.START_HARD,taxiRides:0,lastTick:Date.now(),dayDate:dateKey(),runId:Math.random().toString(36).slice(2,10),startedAt:Date.now(),playMs:0,dayMs:{},sessions:0,chunkN:0};
+    stat:{earned:0,sold:0,parcels:0,bought:0},dstat:{earned:0,sold:0,pts:0,bought:0},bag:{},extraSlots:0,extraSlotsSoft:0,player:null,bp:{claimedFree:0,claimedPaid:0,paid:false},lbSeed:Math.floor(Math.random()*1e9),hard:CFG.START_HARD,taxiRides:0,lastTick:Date.now(),dayDate:dateKey(),runId:Math.random().toString(36).slice(2,10),startedAt:Date.now(),playMs:0,dayMs:{},sessions:0,chunkN:0};
   for(const k in d)if(S[k]===undefined)S[k]=typeof d[k]==='object'?JSON.parse(JSON.stringify(d[k])):d[k];
   if(!Array.isArray(S.q))newQuest();
   if(!S.lastTick)S.lastTick=Date.now(); if(!S.dayDate)S.dayDate=dateKey();
@@ -477,7 +486,7 @@ function lbBots(){let x=(S.lbSeed||1)>>>0;const r=()=>{x=(x*1664525+1013904223)>
   return LB_NAMES.map((n,i)=>{const c=i<1?[600,900]:i<4?[300,550]:i<7?[120,300]:[40,120];return{n,fin:Math.round(c[0]+(c[1]-c[0])*r()),jit:0.8+0.5*r()};});}
 function dayFrac(){if(CFG.REAL_DAYS){const d=new Date();return(d.getHours()*60+d.getMinutes())/1440;}return 1-Math.max(0,S.rolls)/CFG.ROLLS_PER_DAY;}
 function lbPts(b){if(S.finished)return b.fin;const d=Math.min(6.999,S.day-1+dayFrac()),i=Math.floor(d),f=d-i;const cur=LB_CURVE[i]+(LB_CURVE[Math.min(6,i+1)]-LB_CURVE[i])*f;return Math.round(b.fin*Math.pow(cur,b.jit));}
-function lbRows(){const rows=lbBots().map(b=>({n:b.n,pts:lbPts(b)}));rows.push({n:'Ты',pts:S.pts,you:true});return rows.sort((a,b)=>b.pts-a.pts);}
+function lbRows(){const rows=lbBots().map(b=>({n:b.n,pts:lbPts(b)}));rows.push({n:S.player||'Ты',pts:S.pts,you:true});return rows.sort((a,b)=>b.pts-a.pts);}
 function lbPlace(){return lbRows().findIndex(r=>r.you)+1;}
 const LB_REWARD=[10,5,3];
 function bagCount(){return Object.values(S.bag||{}).reduce((a,b)=>a+b,0);}
@@ -544,7 +553,8 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='3.8', LOGK='americanboy_log';
+const VERSION='3.8', LOGK='americanboy_log', FULLK='americanboy_runlog';
+const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
 try{pending=JSON.parse(localStorage.getItem(LOGK)||'[]');}catch(e){pending=[];}
 function getDb(){if(!dbP){dbP=(window.claude&&claude.use)?claude.use('db').catch(()=>null):Promise.resolve(null);}return dbP;}
@@ -554,14 +564,28 @@ function track(type,data){
   try{localStorage.setItem(LOGK,JSON.stringify(pending.slice(-400)));}catch(e){}
   if(pending.length>=25)flush();
 }
+function summaryDoc(){const ks=myKiosks();return{runId:S.runId,player:S.player||null,version:VERSION,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
+      playMin:Math.round((S.playMs||0)/60000*10)/10,dayMin:Object.fromEntries(Object.entries(S.dayMs||{}).map(([d,ms])=>[d,Math.round(ms/60000*10)/10])),sessions:S.sessions||1,
+      points:ks.length,biz:S.tiles.filter(t=>t.type==='biz'&&t.owner).length,tiers:ks.map(t=>t.tier).join(''),opened:S.opened,stat:S.stat,finished:!!S.finished,ticket:S.pts>=CFG.TICKET_PTS,chunks:S.chunkN||0,ua:navigator.userAgent.slice(0,80)};}
+// вне артефакта: полный лог партии копится в localStorage, при заданном TELEMETRY_URL уходит туда же порциями
+function localFlush(final){ if(!S||!pending.length)return; const chunk=pending.splice(0,pending.length);
+  try{const all=JSON.parse(localStorage.getItem(FULLK)||'{}'); if(all.runId!==S.runId){all.runId=S.runId;all.events=[];} all.events=(all.events||[]).concat(chunk); all.summary=summaryDoc(); localStorage.setItem(FULLK,JSON.stringify(all)); localStorage.setItem(LOGK,'[]');}catch(e){}
+  if(TELEMETRY_URL){try{fetch(TELEMETRY_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({summary:summaryDoc(),events:chunk})});}catch(e){}} }
+function exportRun(){ let all={}; try{all=JSON.parse(localStorage.getItem(FULLK)||'{}');}catch(e){}
+  const events=(all.runId===S.runId?(all.events||[]):[]).concat(pending); const data=JSON.stringify({summary:summaryDoc(),events});
+  const name=`americanboy_${(S.player||'anon').replace(/[^\wа-яА-Я-]/g,'_')}_${S.runId}.json`;
+  track('export',{events:events.length});
+  if(navigator.share&&navigator.canShare&&window.File){try{const f=new File([data],name,{type:'application/json'});if(navigator.canShare({files:[f]})){navigator.share({files:[f],title:'Партия «Америкэн бой»'}).catch(()=>{});return;}}catch(e){}}
+  if(navigator.clipboard){navigator.clipboard.writeText(data).then(()=>toast(`Лог партии скопирован (${events.length} событий). Вставь его в сообщение Андрею.`)).catch(()=>toast('Не удалось скопировать'));}
+  else toast('Экспорт не поддерживается этим браузером'); }
 async function flush(final){
-  const db=await getDb(); if(!db||!S||(!pending.length&&!final))return;
+  const db=await getDb(); if(!S)return; if(!db){localFlush(final);return;} if(!pending.length&&!final)return;
   try{
     if(pending.length){const chunk=pending.splice(0,pending.length);S.chunkN=(S.chunkN||0)+1;
       await db.doc(`runs/${S.runId}/chunks/c${String(S.chunkN).padStart(4,'0')}`).set({events:chunk,n:chunk.length,day:S.day,at:Date.now()});
       try{localStorage.setItem(LOGK,'[]');}catch(e){}}
     const ks=myKiosks();
-    await db.doc(`runs/${S.runId}`).set({runId:S.runId,version:VERSION,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
+    await db.doc(`runs/${S.runId}`).set({runId:S.runId,player:S.player||null,version:VERSION,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
       playMin:Math.round((S.playMs||0)/60000*10)/10,dayMin:Object.fromEntries(Object.entries(S.dayMs||{}).map(([d,ms])=>[d,Math.round(ms/60000*10)/10])),sessions:S.sessions||1,
       points:ks.length,biz:S.tiles.filter(t=>t.type==='biz'&&t.owner).length,tiers:ks.map(t=>t.tier).join(''),opened:S.opened,stat:S.stat,finished:!!S.finished,ticket:S.pts>=CFG.TICKET_PTS,chunks:S.chunkN||0,ua:navigator.userAgent.slice(0,80)});
   }catch(e){ /* база недоступна — события остаются в очереди */ }
@@ -954,11 +978,11 @@ async function parcel(forced){
       gs.map(g=>`<div class="row"><span class="n">${g.icon} ${g.name} <small>${g.pts} очк./шт · в точках ${stock(g.id)}</small></span>
         <div class="qty"><button data-g="${g.id}" data-d="-1" ${box[g.id]<=0?'disabled':''}>−</button><b>${box[g.id]}</b><button data-g="${g.id}" data-d="1" ${n>=N||stock(g.id)-box[g.id]<=0?'disabled':''}>+</button></div></div>`).join('')+
       `<div class="row"><span class="n">Очки за поставку</span><span class="v">${p}</span></div>
-      ${canSlot?`<div class="row"><span class="n">Ещё одно место в контейнере<small>каждое следующее вдвое дороже · сегодня ещё ${CFG.EXTRA_SLOT.perDay-S.extraSlots}</small></span><span class="qty"><button class="sm" id="mSlot" ${S.cash<sp?'disabled':''}>$${sp}</button><button class="sm hard" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`:''}
+      ${canSlot?(()=>{const softLeft=CFG.EXTRA_SLOT.softPerDay-(S.extraSlotsSoft||0);return `<div class="row"><span class="n">Ещё одно место в контейнере<small>${softLeft>0?`за нал сегодня ещё ${softLeft}`:'за нал сегодня всё, дальше 💎'} · каждое следующее вдвое дороже</small></span><span class="qty">${softLeft>0?`<button class="sm" id="mSlot" ${S.cash<sp?'disabled':''}>$${sp}</button>`:''}<button class="sm hard" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`;})():''}
       <div class="mbtns"><button class="sec sm" id="mAuto">Самое дорогое</button><button class="ok" id="mSend" ${n<=0?'disabled':''}>Отправить</button><button class="sec" id="mNo">${forced?'Не отправлять':'Позже'}</button></div>`;
     $('card').querySelectorAll('.qty button').forEach(b=>b.onclick=()=>{const g=b.dataset.g;box[g]=Math.max(0,box[g]+ +b.dataset.d);draw();});
     $('mAuto').onclick=()=>{autofill();draw();};
-    const ms=$('mSlot'); if(ms)ms.onclick=()=>{track('slot_buy',{cost:sp,cur:'cash'});S.cash-=sp;S.extraSlots++;log(`Докупил место в контейнере за $${sp}.`);draw();render();};
+    const ms=$('mSlot'); if(ms)ms.onclick=()=>{track('slot_buy',{cost:sp,cur:'cash'});S.cash-=sp;S.extraSlots++;S.extraSlotsSoft=(S.extraSlotsSoft||0)+1;log(`Докупил место в контейнере за $${sp}.`);draw();render();};
     const mh=$('mSlotH'); if(mh)mh.onclick=()=>{if(spendHard(hp)){track('slot_buy',{cost:hp,cur:'hard'});S.extraSlots++;log(`Докупил место в контейнере за 💎 ${hp}.`);draw();render();}};
     $('mSend').onclick=()=>{const L0=level(),had=S.pts>=CFG.TICKET_PTS;CFG.GOODS.forEach(g=>{if(box[g.id])fly(g.icon,AT.card(),AT.hub(),Math.min(box[g.id],4),{pulse:'bHub'});});CFG.GOODS.forEach(g=>takeGoods(g.id,box[g.id]));S.pts+=p;S.xp+=p;S.parcelSent=true;S.stat.parcels++;S.dstat.pts+=p;qProg('parcel',p,true);
       track('parcel',{units:n,pts:p,slots:N,extra:S.extraSlots,forced:!!forced,box});log(`📦 Поставка ушла: ${n} шт, +${p} очков.`);closeModal(1);
@@ -1049,7 +1073,7 @@ async function sleep(auto){
     ${S.q&&S.q.some(q=>q.done&&!q.claimed)?`<div class="row"><span class="n">🎁 Незабранные награды<small>сгорят с началом нового дня</small></span><button class="sm ok blink" id="dClaim">Забрать</button></div>`:''}`,[{t:'Дальше',v:1,cls:'ok'}],{sticky:false});
   track('day_end',{d,dayMs:(S.dayMs||{})[S.day]||0,points:myKiosks().length,opened:S.opened.filter(Boolean).length,q:S.q.map(q=>({id:q.id,done:q.done,claimed:q.claimed}))});
   S.dstat={earned:0,sold:0,pts:0,bought:0};
-  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.jail=0;S.extraSlots=0;newQuest();
+  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.jail=0;S.extraSlots=0;S.extraSlotsSoft=0;newQuest();
   if(S.day>CFG.DAYS)return finish();
   const msgs=[`☀️ День ${S.day}.`];
   CFG.ZONES.forEach((z,zi)=>{if(z.day<=S.day&&!S.opened[zi])msgs.push(openZone(zi,0));});
@@ -1089,16 +1113,18 @@ function settings(){
     <div class="row"><span class="n">Старт $ (с новой игры)</span><input type="number" id="iCash" value="${CFG.START_CASH}"></div>
     <div class="row"><span class="n">Мест в контейнере</span><input type="number" id="iSlots" value="${CFG.PARCEL_SLOTS}"></div>
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
+    <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v8.0. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v8.2. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
-  $('cDay2').onclick=()=>{closeModal();sleep();};
+  $('cDay2').onclick=()=>{track('debug',{what:'day'});closeModal();sleep();};
   const apply=()=>{CFG.ROLLS_PER_DAY=+$('iRolls').value||30;CFG.START_CASH=+$('iCash').value||250;CFG.PARCEL_SLOTS=+$('iSlots').value||6;};
-  $('cCash').onclick=()=>{S.cash+=500;render();toast('+$500');};
-  $('cRolls').onclick=()=>{S.rolls+=10;render();toast('+10 ходов');};
-  $('cHard').onclick=()=>{S.hard+=50;render();toast('+💎 50');};
+  $('cCash').onclick=()=>{S.cash+=500;track('debug',{what:'cash',n:500});render();toast('+$500');};
+  $('cRolls').onclick=()=>{S.rolls+=10;track('debug',{what:'rolls',n:10});render();toast('+10 ходов');};
+  $('cHard').onclick=()=>{S.hard+=50;track('debug',{what:'hard',n:50});render();toast('+💎 50');};
+  $('cExport').onclick=()=>exportRun();
 
   $('cReset').onclick=()=>{apply();closeModal();newGame();};
   $('cClose').onclick=()=>{apply();closeModal();};
@@ -1265,7 +1291,7 @@ $('bJohnnyTop').onclick=()=>{if(!moving)johnny();};$('bJohnny').onclick=()=>{if(
 $('bRoll').onclick=roll;$('bTaxi').onclick=taxi;$('bSettings').onclick=settings;$('invBtn').onclick=()=>{invOpen=!invOpen;render();};
 window.addEventListener('resize',()=>{fit();draw();if(!$('tip').hidden)positionTip();});
 if(window.ResizeObserver)new ResizeObserver(()=>{fit();draw();}).observe(cv);
-if(!load())newGame();else if(S.finished)newGame();
+if(!load())newGame();else if(S.finished)newGame();else if(!S.player)setTimeout(()=>askName(),50);
 S.sessions=(S.sessions||0)+1;track('session_start',{sessions:S.sessions});
 fit();{const[g1,g2]=gridOf(S.pos);const[x,y]=iso(g1,g2);cam={x,y:y-TH*0.4};}render();
 </script>
