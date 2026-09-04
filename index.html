@@ -10,6 +10,7 @@
 html,body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.35 -apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100%;margin:0 auto;position:relative}
 #top>*{width:100%;max-width:520px}
+#top,#panel,#inv,.card,#tip,#toast{zoom:var(--ui,1)}
 #top{position:absolute;left:0;right:0;top:0;z-index:35;padding:8px 10px 0;display:flex;flex-direction:column;gap:6px;pointer-events:none;align-items:center}
 .bar0{display:flex;gap:8px;align-items:center;justify-content:center;width:100%}
 .ava{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:var(--cream);color:var(--ink);border:3px solid #8a7e6e;padding:0;line-height:1;box-shadow:0 2px 0 #0004}
@@ -43,7 +44,7 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .chip[hidden]{display:none}
 #stage{flex:1;min-height:0;position:relative}
 #board{width:100%;height:100%;display:block;touch-action:none}
-#inv{position:absolute;left:8px;bottom:calc(var(--panelH,150px) + 8px);display:flex;flex-direction:column;gap:5px;z-index:4}
+#inv{position:absolute;left:8px;bottom:calc((var(--panelH,150px) + 8px) / var(--ui,1));display:flex;flex-direction:column;gap:5px;z-index:4}
 #invList{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
 #invList span{background:var(--cream);color:var(--ink);border-radius:20px;padding:4px 10px 4px 6px;font-size:13px;font-weight:700;box-shadow:0 2px 0 #0004}
 #invList span.trend{outline:2px solid var(--gold)}
@@ -106,7 +107,7 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 .shop .wide{margin:0 16px 16px;background:#fff8e6;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .shop .wide .n{flex:1}.shop .wide small{display:block;color:#6b5f52;font-size:12px}
 .shop .buy{margin:0 14px 14px;width:calc(100% - 28px);padding:12px;font-size:17px}
-.shop .whead{padding:10px 14px 6px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}.shop .whead .qm{margin:0}
+.shop .whead{padding:8px 14px 6px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}.shop .whead .qm{margin:0}
 .shop .wr{display:flex;align-items:center;gap:10px;background:#fff8e6;border-radius:12px;margin:0 14px 8px;padding:8px 10px}
 .shop .wr.trend{outline:2px solid var(--gold)}
 .shop .ring{width:40px;height:40px;border-radius:50%;background:conic-gradient(var(--green) var(--p),#0002 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -189,8 +190,7 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
       <span class="cur"><i class="ic b">💎</i><b id="sHard">5</b></span>
       <span class="cur"><i class="ic o">📅</i><b id="sDay">1/7</b></span>
     </div>
-    <div class="bar2" id="qrow"><button class="qchip" id="q0"><span></span><i></i></button><button class="qchip" id="q1"><span></span><i></i></button></div>
-    <div class="bar2"><span class="chip" id="sEvent" hidden></span></div>
+    <div class="bar2" id="qrow"><button class="qchip" id="q0"><span></span><i></i></button><button class="qchip" id="q1"><span></span><i></i></button><span class="chip" id="sEvent" hidden></span></div>
   </div>
   <div id="stage"><canvas id="board"></canvas><div id="inv" hidden><div id="invList" hidden></div><button id="invBtn"></button></div></div>
   <div id="panel">
@@ -672,7 +672,7 @@ function modal(html,btns,opt){return new Promise(res=>{
 function openCustom(){return new Promise(res=>{modalResolve=res;modalSticky=false;modalSeq++;$('modal').classList.remove('closing');$('modal').hidden=false;});}
 let modalSeq=0;
 function closeModal(v){holdStop();hideTip();const r=modalResolve;modalResolve=null;const my=++modalSeq;const m=$('modal');
-  const reset=()=>{m.hidden=true;m.classList.remove('closing');m.classList.remove('mid');$('card').className='card';};
+  const reset=()=>{m.hidden=true;m.classList.remove('closing');m.classList.remove('mid');$('card').className='card';$('card').style.zoom='';};
   if(m.hidden||CFG.SPEED>=100){reset();}else{m.classList.add('closing');setTimeout(()=>{if(modalSeq===my)reset();},150);}
   if(r)r(v);}
 // кнопка с автоповтором при удержании (MButton_Hold)
@@ -783,8 +783,13 @@ function shopFrame(t,inner){ // компоновка окна точки/биз�
   const g=t.type==='kiosk'?good(t.good):null, title=t.type==='kiosk'?pointName(t):bizName(t), sub=t.type==='kiosk'?`${CAT_NAMES[t.base||'gum']||'Товар'} · ${g.name}`:`${tname(t)} · ${CFG.ZONES[t.zone].name}`;
   $('modal').classList.add('mid'); $('card').className='card bare';
   $('card').innerHTML=`<div class="shop"><div class="banner"><small>${sub}</small><b>${title}</b><span class="big">${g?g.icon:'🏢'}</span></div>${inner}</div><button class="xclose" id="xNo">✕</button>`;
-  $('xNo').onclick=()=>closeModal();
+  $('xNo').onclick=()=>closeModal(); fitCard();
 }
+// карточка в компоновке кора должна быть видна целиком: масштаб = свободное место между шапкой и доком / нужная высота
+function fitCard(){try{const c=$('card');if(!c.classList.contains('bare'))return;const sh=c.querySelector('.shop'),x=c.querySelector('.xclose');if(!sh)return;
+  c.style.zoom='';const cs=getComputedStyle(document.documentElement),ui=parseFloat(cs.getPropertyValue('--ui'))||1,ph=parseFloat(cs.getPropertyValue('--panelH'))||150,th=$('top').getBoundingClientRect().height;
+  const avail=window.innerHeight-th-ph-16, need=sh.scrollHeight+(x?x.offsetHeight+8:0);
+  const f=Math.max(0.55,Math.min(ui,avail/need));c.style.zoom=f.toFixed(3);}catch(e){}}
 async function kioskWindow(t){
   const draw=()=>{
     const g=good(t.good), margin=Math.max(0,sellPrice(t.good)-buyPrice(t.good));
@@ -867,7 +872,7 @@ async function shop(){
       ${ks.length?rows:'<p class="empty">Своих точек нет — товар негде хранить. Сначала купи точку.</p>'}
       ${perk().disc?`<p class="empty">Скидка Джонни ${perk().disc*100}%.</p>`:''}
       ${ks.length?`<button class="buyall" id="wAll" ${need<=0||S.cash<minP?'disabled':''}><span>${need<=0?'Всё заполнено':S.cash>=need?'Закупиться на точки':'На все — самое выгодное'}</span><b>${need<=0?'':'$'+(S.cash>=need?need:S.cash)}</b></button>`:''}
-    </div><button class="xclose" id="wNo">✕</button>`;
+    </div><button class="xclose" id="wNo">✕</button>`; fitCard();
     $('card').querySelectorAll('button[data-g]').forEach(b=>hold(b,()=>{const g=b.dataset.g,p=buyPrice(g);if(goodCap(g)-stock(g)<=0||S.cash<p)return;if(addGoods(g,1)){S.cash-=p;}draw();render();}));
     const all=$('wAll'); if(all)all.onclick=()=>{let spent=0;
       // денег на всё хватает — просто заполнить; не хватает — сначала самое выгодное, по одному кругу продаж на точку, кругами
@@ -1157,7 +1162,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v8.7. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v8.8. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
@@ -1179,7 +1184,9 @@ function gridOf(i){if(i<10)return[10-i,10];if(i<20)return[0,20-i];if(i<30)return
 function iso(gx,gy){return[OX+(gx-gy)*TW/2,OY+(gx+gy)*TH/2];}
 function panelH(){const p=$('panel');const h=(p&&p.offsetHeight)||0;return h>20?h-40:0;} // док лежит поверх поля; часть его высоты — прозрачный градиент
 function fit(){
-  try{document.documentElement.style.setProperty('--panelH',Math.max(90,(($('panel')&&$('panel').offsetHeight)||220)-70)+'px');document.documentElement.style.setProperty('--topH',(($('top')&&$('top').offsetHeight)||170)+'px');}catch(e){}
+  try{const ui=Math.max(0.78,Math.min(1,window.innerWidth/430,window.innerHeight/840));document.documentElement.style.setProperty('--ui',ui.toFixed(3));
+    const ph=$('panel').getBoundingClientRect().height,th=$('top').getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--panelH',Math.max(80,(ph||220)-70*ui)+'px');document.documentElement.style.setProperty('--topH',(th||170)+'px');}catch(e){}
   const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
   cv.width=r.width*dpr;cv.height=r.height*dpr;cx.setTransform(dpr,0,0,dpr,0,0);
   TW=Math.max(56,Math.min(130,r.width/CFG.ZOOM));TH=TW*0.58;OX=0;OY=0;
