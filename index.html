@@ -317,7 +317,7 @@ const CFG = {
   BIZ:   {maxLevel:3, feePct:0.20, feeLevelMult:1.6, upgradeMult:0.8, landMult:3, paybackLaps:12},  // бизнес: сбор за проход, за остановку ×landMult; прокачка стоит paybackLaps кругов прибавки сбора
   PATSAN_XP: [0,10,30,60,100,160,240,340,460,600],
   PERKS: {2:'Товар на Costco на 10% дешевле',3:'Оборот всех точек +15% (не меньше +1 шт)',4:'Сборы с точек и бизнесов +25%',5:'Выпал дубль — продажи на старте удваиваются',
-          6:'+1 место в контейнере поставки',7:'Товар на Costco на 20% дешевле',8:'Оборот всех точек ещё +15%',9:'Сборы с точек и бизнесов +50%',10:'+2 места в контейнере поставки'},
+          6:'+1 место в контейнере поставки',7:'Товар на Costco на 20% дешевле',8:'Оборот всех точек ещё +15%',9:'Сборы с точек и бизнесов +50%',10:'Оборот всех точек ещё +15%'},
   LOANS:[ // до трёх кредитов одновременно; laps — сколько кругов твоей чистой прибыли дают, floor — минимум
     // laps — множитель потенциальной прибыли за круг (продажи всех точек при полном запасе × маржа + сборы бизнесов); hard — взнос хардой
     // сумма = max(прибыль за круг × laps, самая дорогая недоступная сейчас покупка × 1,15), но не больше залога / SEIZE_RATIO × ltv
@@ -554,7 +554,7 @@ function load(){try{
 // ---------- формулы ----------
 const good=id=>CFG.GOODS.find(g=>g.id===id);
 function level(){let l=1;CFG.PATSAN_XP.forEach((x,i)=>{if(S.xp>=x)l=i+1;});return l;}
-function perk(){const L=level();return{disc:L>=7?0.2:L>=2?0.1:0,salesPct:(L>=3?0.15:0)+(L>=8?0.15:0),fee:L>=9?1.5:L>=4?1.25:1,dbl:L>=5,slots:(L>=6?1:0)+(L>=10?2:0)};}
+function perk(){const L=level();return{disc:L>=7?0.2:L>=2?0.1:0,salesPct:(L>=3?0.15:0)+(L>=8?0.15:0)+(L>=10?0.15:0),fee:L>=9?1.5:L>=4?1.25:1,dbl:L>=5,slots:(L>=6?1:0)};} // места в фуре — платная механика, перк даёт максимум одно
 function buyPrice(g){return Math.max(1,Math.round(good(g).buy*(1-perk().disc)));}
 function sellPrice(g){let p=good(g).sell;if(S.trend===g)p*=CFG.TREND_MULT;if(S.day===CFG.BLACK_FRIDAY_DAY)p*=CFG.BF_MULT;return Math.round(p);}
 function klevel(t){return t.type==='biz'?t.level:t.capLvl+t.salesLvl-1;}
@@ -1287,7 +1287,7 @@ function settings(){
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
-    <p style="font-size:12px">Прототип «Америкэн бой» v11.1. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
+    <p style="font-size:12px">Прототип «Америкэн бой» v11.2. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
   $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
   $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
