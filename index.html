@@ -276,12 +276,13 @@ const CFG = {
   SHOP_SOFT:[{mult:1,hard:3},{mult:3,hard:8},{mult:8,hard:20}], // нал за харду: сумма = mult × средняя цена точки лучшего открытого района // цены: сверхурочные, откуп от полиции, такси, место в контейнере, район ($ за 1💎)
   START_CASH: 250,
   PARCEL_SLOTS: 6,
-  PARCEL:{unitsPerSlot:[1,2,4,6,10,15,30], dayReward:[50,70,90,120,150,200,320]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
+  PARCEL:{unitsPerSlot:[1,2,4,6,10,15,30], dayReward:[60,90,120,160,200,260,410]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
   ZONES: [
     // day — день бесплатного открытия; price — цена открытия в день 1, падает линейно до нуля к day
-    {name:'Брайтон-Бич', from:1,  to:13, day:1, price:0,    color:'#6aa84f'},
-    {name:'Кони-Айленд', from:14, to:26, day:3, price:900,  color:'#e69138'},
-    {name:'Манхэттен',   from:27, to:39, day:5, price:3000, color:'#6d78d6'},
+    // day — день бесплатного открытия; hard — цена раннего открытия в 💎 в день 1, падает линейно к day (за нал районы не открываются)
+    {name:'Брайтон-Бич', from:1,  to:13, day:1, hard:0,    color:'#6aa84f'},
+    {name:'Кони-Айленд', from:14, to:26, day:3, hard:300,  color:'#e69138'},
+    {name:'Манхэттен',   from:27, to:39, day:5, hard:1000, color:'#6d78d6'},
   ],
   GOODS: [
     // базовые товары районов; next — премиум-товар той же категории после расширения (Магазин, затем Супермаркет)
@@ -308,7 +309,9 @@ const CFG = {
   ],
   TIER_DAY:[1,2,4],            // с какого дня доступен тир (Точка, Магазин, Супермаркет)
   EVOLVE_COST:[0,500,3000],    // цена расширения до тира 2 и 3
-  TIER_PRICE_BASE:{kiosk:[0,400,2000],biz:[0,1250,6500]}, // база цены здания после расширения (от неё считаются прокачки и сборы)
+  TIER_PRICE_BASE:{kiosk:[0,400,2000],biz:[0,1250,6500]}, // минимальная база после расширения (для дешёвых районов)
+  TIER_PRICE_MULT:{kiosk:[0,4,5],biz:[0,5,5]},          // база после расширения = max(TIER_PRICE_BASE, цена × множитель) — дорогие районы дорожают пропорционально
+  EVOLVE_COST_SHARE:{kiosk:0.6,biz:4.0},                // цена расширения = max(EVOLVE_COST, доля новой базы): у бизнеса сбор идёт от базы, поэтому доля выше (окупаемость ≈12 кругов) // база цены здания после расширения (от неё считаются прокачки и сборы)
   KIOSK_PRICE: [[40,90],[300,500],[1500,2500]],
   BIZ_PRICE:   [[200,300],[1000,1500],[5000,8000]],
   // ларёк как в игре: два прокачиваемых стата — Вместимость и Продажи; уровень ларька = сумма прокачек
@@ -447,13 +450,13 @@ async function eventHub(tab){ if(tab)hubTab=tab;
         ${tabs}`;
       setTimeout(()=>{const me=$('card').querySelector('.lblist .lbrow:nth-child('+place+')');if(me)me.scrollIntoView({block:'nearest'});},30);
     } else {
-    $('card').innerHTML=`${xhead}<h2>🎫 Билет Джонни <small>Джонни ур. ${L}</small>${helpBtn(`Очки поставок — билет Джонни. Награду за задание забрать до полуночи. Район можно открыть раньше за деньги. В конце недели нал и точки дают бонус до ${CFG.FINAL.cashCap+CFG.FINAL.assetsCap} очков, остатки товара сгорают.`)}</h2>
+    $('card').innerHTML=`${xhead}<h2>🎫 Билет Джонни <small>Джонни ур. ${L}</small>${helpBtn(`Очки поставок — билет Джонни. Награду за задание забрать до полуночи. Район можно открыть раньше только за кристаллы, и это дорого. В конце недели нал и точки дают бонус до ${CFG.FINAL.cashCap+CFG.FINAL.assetsCap} очков, остатки товара сгорают.`)}</h2>
       ${(()=>{const max=CFG.MILESTONES.slice(-1)[0].pts,pc=Math.min(100,S.pts/max*100),nm=nextMilestone();return `<div class="row" style="border:0;padding:2px 0"><span class="n">${nm?`До «${nm.name}» ещё ${nm.pts-S.pts}`:'Все рубежи взяты'}</span><span class="v">🎫 ${S.pts}</span></div>
         <div class="msbar"><i style="width:${pc}%"></i>${CFG.MILESTONES.map(m=>`<span class="tick ${S.pts>=m.pts?'done':''}" style="left:${m.pts/max*100}%"><b></b><small>${m.pts}</small></span>`).join('')}<em style="left:${pc}%">${S.pts}</em></div>`;})()}
       <div class="ms3">${CFG.MILESTONES.map((m,i)=>`<div class="msc ${S.pts>=m.pts?'done':(nextMilestone()&&nextMilestone().pts===m.pts?'next':'')}"><span class="msi">${['🎫','🎖','🏆'][i]}</span><b>${m.pts}</b><span class="msn">${m.name}</span><small>${m.reward}</small><i>${S.pts>=m.pts?'✓':'🔒'}</i></div>`).join('')}</div>
       <p class="dim" style="margin-top:12px">🎯 Задания дня</p>
       ${S.q.map((q,i)=>`<div class="row"><span class="n">${i?'🔥 ':''}${q.text}<small>${rwText(q.reward)}</small></span>${q.claimed?'<span class="v">✓</span>':q.done?`<button class="sm ok" data-claim="${i}">Забрать</button>`:`<span class="v">${Math.min(q.prog,q.goal)}/${q.goal}</span>`}</div>`).join('')}
-      ${nz>0?`<div class="row" style="margin-top:6px"><span class="n">🔒 ${CFG.ZONES[nz].name}</span><button class="sm ok" id="hZone" ${S.cash<zonePrice(nz)?'disabled':''}>Открыть · $${zonePrice(nz)}<small>бесплатно в день ${CFG.ZONES[nz].day}</small></button></div>`:''}
+      ${nz>0?`<div class="row" style="margin-top:6px"><span class="n">🔒 ${CFG.ZONES[nz].name}</span><button class="sm hard" id="hZone" ${S.hard<zonePrice(nz)?'disabled':''}>💎 ${zonePrice(nz)}<small>бесплатно в день ${CFG.ZONES[nz].day}</small></button></div>`:''}
       <div class="mbtns"><button class="sec" id="hJ">🧢 Джонни</button><button class="sec" id="hHelp" style="flex:0 0 52px">?</button></div>${tabs}`;
     }
     $('card').querySelectorAll('button[data-tab]').forEach(b=>b.onclick=()=>{hubTab=b.dataset.tab;track('hub_tab',{tab:hubTab});draw();});
@@ -568,7 +571,7 @@ function capCost(t){return Math.round(t.price*CFG.KIOSK.capUpMult*t.capLvl);}
 function salesCost(t){return Math.round(t.price*CFG.KIOSK.salesUpMult*t.salesLvl);}
 function bizUpCost(t){const cur=fee(t),next=Math.round(t.price*CFG.BIZ.feePct*Math.pow(CFG.BIZ.feeLevelMult,t.level)*perk().fee);return Math.max(50,Math.round((next-cur)*CFG.BIZ.paybackLaps/10)*10);}
 function unlocked(t){return t.zone<0||S.opened[t.zone];}
-function zonePrice(zi){const z=CFG.ZONES[zi];if(S.day>=z.day)return 0;return Math.round(z.price*(z.day-S.day)/(z.day-1)/10)*10;}
+function zonePrice(zi){const z=CFG.ZONES[zi];if(S.day>=z.day)return 0;return Math.ceil(z.hard*(z.day-S.day)/(z.day-1)/10)*10;} // в 💎
 function nextZone(){return S.opened.findIndex(o=>!o);}
 function openZone(zi,paid){
   const z=CFG.ZONES[zi];S.opened[zi]=true;track('zone_open',{zone:zi,paid:paid||0});
@@ -579,10 +582,9 @@ function openZone(zi,paid){
 async function offerOpen(zi){
   const z=CFG.ZONES[zi],pr=zonePrice(zi);
   const left=z.day-S.day, freeTxt=left<=0?'бесплатно сегодня':left===1?'бесплатно завтра':`бесплатно через ${left} дн.`;
-  const v=await modal(`<p class="dim">🔒 ${z.name}</p><p class="t">Новые точки и товар: ${CFG.GOODS.filter(g=>g.zone===zi).map(g=>g.icon+' '+g.name).join(', ')}. Цена открытия падает каждый день.</p>`,
-    [{t:`Открыть · $${pr}<small>${freeTxt}</small>`,v:1,cls:'ok',dis:S.cash<pr},{t:`Открыть · 💎 ${Math.ceil(pr/CFG.HARD.zonePer)}`,v:3,cls:'hard',dis:S.hard<Math.ceil(pr/CFG.HARD.zonePer)},{t:'Подожду',v:0,cls:'sec'}]);
-  if(v===3){if(!spendHard(Math.ceil(pr/CFG.HARD.zonePer),AT.tile(CFG.ZONES[zi].from)))return;const m=openZone(zi,'💎 '+Math.ceil(pr/CFG.HARD.zonePer));save();render();await wait(3300);await modal(`<h2>${m}</h2>`,[{t:'Поехали',v:1,cls:'ok'}]);return;}
-  if(v===1){S.cash-=pr;const m=openZone(zi,pr);save();render();await wait(3300);await modal(`<h2>${m}</h2>`,[{t:'Поехали',v:1,cls:'ok'}]);}
+  const v=await modal(`<p class="dim">🔒 ${z.name}</p><p class="t">Новые точки и товар: ${CFG.GOODS.filter(g=>g.zone===zi).map(g=>g.icon+' '+g.name).join(', ')}. Открывается ${freeTxt}. Раньше — только за кристаллы, круг станет длиннее.</p>`,
+    [{t:`Открыть сейчас · 💎 ${pr}<small>${freeTxt}</small>`,v:3,cls:'hard',dis:S.hard<pr},{t:'Подожду',v:0,cls:'sec'}]);
+  if(v===3){if(!spendHard(pr,AT.tile(CFG.ZONES[zi].from)))return;const m=openZone(zi,'💎 '+pr);save();render();await wait(3300);await modal(`<h2>${m}</h2>`,[{t:'Поехали',v:1,cls:'ok'}]);}
 }
 function spendHard(n,to){if((S.hard||0)<n){toast('Не хватает 💎');track('hard_short',{need:n});return false;}track('hard_spend',{n});fly('💎',AT.hard(),to||AT.card(),Math.min(n,4),{pulse:'sHard'});S.hard-=n;render();return true;}
 function pay(m){m=Math.min(S.cash,Math.round(m));if(m>0)fly('💵',AT.cash(),AT.pot(),flyN(m));S.cash-=m;S.pot+=m;return m;} // все штрафы падают в копилку
@@ -637,7 +639,7 @@ function taxiPrice(){return CFG.HARD.taxi*Math.pow(2,S.taxiRides||0);}
 function lapNet(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+(t.type==='biz'?fee(t):sales(t)*Math.max(0,sellPrice(t.good)-buyPrice(t.good))),0);}
 function lapPotential(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+(t.type==='biz'?fee(t):sales(t)*Math.max(0,sellPrice(t.good)-buyPrice(t.good))),0);}
 // сумма кредита: под что игрок хочет вложиться, чего не может купить сейчас; потолок — залог (точки и бизнесы), который заберут при дефолте
-function investGaps(){const g=[];const nz=nextZone();if(nz>0&&zonePrice(nz)>0)g.push(zonePrice(nz));
+function investGaps(){const g=[];
   for(const t of S.tiles){if(!unlocked(t))continue;
     if((t.type==='kiosk'||t.type==='biz')&&!t.owner)g.push(t.price);
     if(t.type==='kiosk'&&t.owner){if(t.capLvl<capTab(t).length)g.push(capCost(t));if(t.salesLvl<salTab(t).length)g.push(salesCost(t));const es=evolveState(t);if(es==='ok'||es==='stats')g.push(evolveCost(t)+(es==='stats'?capCost(t)+salesCost(t):0));}
@@ -665,7 +667,8 @@ function bizIcon(t){return CFG.BIZ_ICONS[t.i]||'🏢';}
 function name(t){return t.type==='biz'?`${bizName(t)}${(t.tier||1)>1?' ('+tname(t).toLowerCase()+')':''}`:`${pointName(t)} (${good(t.good).icon} ${good(t.good).name})`;}
 // расширение: ларёк с максимальными статами переезжает на товар следующего района, бизнес — на цены следующего района
 function evolveTarget(t){const nt=(t.tier||1)+1;return nt<=3?nt:-1;}
-function evolveCost(t){return CFG.EVOLVE_COST[(t.tier||1)]||0;}
+function evolvedPrice(t){const nt=evolveTarget(t);if(nt<0)return t.price;return Math.max(CFG.TIER_PRICE_BASE[t.type][nt-1],Math.round(t.price*CFG.TIER_PRICE_MULT[t.type][nt-1]/10)*10);}
+function evolveCost(t){const nt=evolveTarget(t);if(nt<0)return 0;return Math.max(CFG.EVOLVE_COST[(t.tier||1)]||0,Math.round(evolvedPrice(t)*CFG.EVOLVE_COST_SHARE[t.type]/10)*10);}
 function evolveState(t){ // 'ok' | 'locked:N' | 'stats' | 'max'
   const nt=evolveTarget(t); if(nt<0)return 'max';
   const maxed=t.type==='biz'?t.level>=CFG.BIZ.maxLevel:(t.capLvl>=capTab(t).length&&t.salesLvl>=salTab(t).length);
@@ -675,7 +678,7 @@ function evolve(t){
   track('evolve',{tile:t.i,ttype:t.type,to:nt,cost});
   S.cash-=cost; const old=name(t);
   if(t.type==='kiosk'&&t.goods>0){const m=t.goods*sellPrice(t.good);S.cash+=m;S.stat.earned+=m;log(`Распродажа остатков: +$${m}.`);t.goods=0;}
-  t.tier=nt; t.price=CFG.TIER_PRICE_BASE[t.type][nt-1];
+  const np=evolvedPrice(t); t.tier=nt; t.price=np;
   if(t.type==='kiosk'){t.good=good(t.good).next||t.good;t.capLvl=1;t.salesLvl=1;}
   log(`🎉 ${old} стал «${t.type==='kiosk'?pointName(t):name(t)}»${t.type==='kiosk'?`, в слоте ${good(t.good).icon} ${good(t.good).name}`:''}. Вместимость и продажи сохранены, открыты новые уровни.`);toast('Расширение!');
 }
@@ -703,7 +706,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='11.7', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='11.9', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
@@ -1037,8 +1040,8 @@ async function lockedCard(t){
   const z=CFG.ZONES[t.zone], pr=zonePrice(t.zone), left=z.day-S.day, freeTxt=left<=0?'бесплатно сегодня':left===1?'бесплатно завтра':`бесплатно через ${left} дн.`;
   const what=t.type==='biz'?'🏢 '+bizName(t):t.type==='kiosk'?pointName(t)+' · '+good(t.good).icon+' '+good(t.good).name:t.type==='wh'?'🏬 Costco':t.type==='bank'?'🏦 Банк':'';
   const v=await modal(`<p class="dim">🔒 ${z.name}</p><div class="row dimrow"><span class="n">Здесь будет</span><span class="v">${what}</span></div>`,
-    [{t:`Открыть · $${pr}<small>${freeTxt}</small>`,v:2,cls:'ok',dis:S.cash<pr},{t:'Закрыть',v:0,cls:'sec'}]);
-  if(v===2){S.cash-=pr;const m=openZone(t.zone,pr);save();render();await wait(3300);await modal(`<h2>${m}</h2>`,[{t:'Поехали',v:1,cls:'ok'}]);}
+    [{t:`Открыть сейчас · 💎 ${pr}<small>${freeTxt}</small>`,v:2,cls:'hard',dis:S.hard<pr},{t:'Закрыть',v:0,cls:'sec'}]);
+  if(v===2){if(!spendHard(pr,AT.tile(t.i)))return;const m=openZone(t.zone,'💎 '+pr);save();render();await wait(3300);await modal(`<h2>${m}</h2>`,[{t:'Поехали',v:1,cls:'ok'}]);}
 }
 
 // ---------- полиция: заплати или сиди, 3 попытки на дубль ----------
@@ -1240,7 +1243,7 @@ async function sleep(auto){
   if(S.day>CFG.DAYS)return finish();
   const msgs=[`☀️ День ${S.day}.`];
   CFG.ZONES.forEach((z,zi)=>{if(z.day<=S.day&&!S.opened[zi])msgs.push(openZone(zi,0));});
-  {const nz=nextZone();if(nz>0)msgs.push(`${CFG.ZONES[nz].name} сегодня стоит $${zonePrice(nz)}.`);}
+  {const nz=nextZone();if(nz>0)msgs.push(`${CFG.ZONES[nz].name} откроется в день ${CFG.ZONES[nz].day}${zonePrice(nz)?`, раньше — 💎 ${zonePrice(nz)}`:''}.`);}
   if(S.day===CFG.BANK_DAY)msgs.push('Открылся банк — кредиты под харду.');
   if(S.day===CFG.BLACK_FRIDAY_DAY)msgs.push(`🛍 Чёрная пятница: все продажи ×${CFG.BF_MULT}!`);
   if(S.day>=CFG.TREND_FROM_DAY&&S.day!==CFG.BLACK_FRIDAY_DAY){const open=availableGoods(),g=open[Math.floor(Math.random()*open.length)];S.trend=g.id;msgs.push(`Тренд дня: ${g.icon} ${g.name} ×${CFG.TREND_MULT}.`);}
