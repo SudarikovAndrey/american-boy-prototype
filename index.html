@@ -95,7 +95,7 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .msbar .tick{position:absolute;top:-4px;transform:translateX(-50%);text-align:center}.msbar .tick b{display:block;width:4px;height:20px;background:#0004;border-radius:2px;margin:0 auto}.msbar .tick.done b{background:#2d6b38}.msbar .tick small{display:block;font-size:11px;font-weight:700;color:#6b5f52;margin-top:2px}
 .msbar em{position:absolute;top:-22px;transform:translateX(-50%);font-style:normal;font-weight:800;font-size:12px;background:var(--ink);color:var(--cream);padding:2px 6px;border-radius:6px;white-space:nowrap}
 .shop .banner.hasimg{height:126px;min-height:0;background-size:cover;background-position:center;padding:0}
-.shop .banner.hasimg b,.shop .banner.hasimg .big{display:none}.shop .banner.hasimg small{position:absolute;left:10px;bottom:8px;background:#2a221ccc;color:#f1e9d2;padding:3px 8px;border-radius:8px;padding-right:8px;max-width:calc(100% - 20px)}
+.shop .banner.hasimg b,.shop .banner.hasimg .big{display:none}
 .fin .finhero{height:96px;position:relative;margin:-4px 0 4px}.finhero .finj{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:64px;line-height:1;transition:transform 1.6s ease-in-out}.finhero .finv{position:absolute;left:50%;top:50%;transform:translate(40px,-60%);font-size:36px;opacity:.9}
 .finhero.fly.go .finj{transform:translate(120px,-140%) rotate(-12deg)}.finhero.sad .finj{filter:grayscale(.4)}
 .fintally .row{padding:5px 0}.fintally .v{font-family:var(--disp);font-size:22px;font-weight:500;min-width:60px;text-align:right}.fintot{border-top:2px solid var(--ink);border-bottom:0;margin-top:4px}.fintot .v{font-size:28px;color:var(--green)}
@@ -131,9 +131,9 @@ button.sm{padding:7px 10px;font-size:13px;border-radius:9px;white-space:nowrap}
 #modal.mid{align-items:flex-start;padding:calc(var(--topH,170px) + 6px) 12px 0}
 .card.bare{background:transparent;box-shadow:none;padding:0;max-width:360px;max-height:none;overflow:visible;border-radius:0;display:flex;flex-direction:column;align-items:stretch}
 .shop{background:var(--cream);border-radius:calc(18px*var(--cs,1));overflow:hidden;color:var(--ink);box-shadow:0 calc(6px*var(--cs,1)) 0 #0005;min-height:0;flex:0 1 auto}
-.shop .banner{display:block;position:relative;background:linear-gradient(180deg,#ebe8e1,#cfc9be);padding:10px 14px 10px;min-height:64px}
+.shop .banner{display:flex;align-items:center;position:relative;background:linear-gradient(180deg,#ebe8e1,#cfc9be);padding:10px 14px 10px;min-height:64px}
 .shop .banner small{display:block;letter-spacing:.16em;font-size:12px;font-weight:600;color:#4a443c;text-transform:uppercase;padding-right:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shop .banner b{display:block;font-weight:700;font-size:30px;line-height:1;font-family:var(--disp);letter-spacing:.02em;text-transform:uppercase;color:#2a221c;margin-top:3px;padding-right:64px;white-space:nowrap;overflow:hidden}
+.shop .banner b{display:block;font-weight:700;font-size:30px;line-height:1;font-family:var(--disp);letter-spacing:.02em;text-transform:uppercase;color:#2a221c;margin-top:0;padding-right:64px;white-space:nowrap;overflow:hidden}
 .shop .banner .big{position:absolute;right:12px;top:10px;font-size:44px;line-height:1;filter:drop-shadow(0 4px 5px #0007)}
 .shop .srow{display:flex;align-items:center;gap:calc(10px*var(--cs,1));padding:calc(6px*var(--cs,1)) calc(12px*var(--cs,1)) calc(4px*var(--cs,1))}
 .shop .ico{width:calc(40px*var(--cs,1));height:calc(40px*var(--cs,1));border-radius:50%;background:#2a221c;border:calc(3px*var(--cs,1)) solid var(--green);display:flex;align-items:center;justify-content:center;font-size:calc(22px*var(--cs,1));flex:0 0 auto}
@@ -703,7 +703,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='11.4', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='11.5', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
@@ -894,7 +894,7 @@ function shopFrame(t,inner){ // компоновка окна точки/биз�
   const g=t.type==='kiosk'?good(t.good):null, title=t.type==='kiosk'?pointName(t):bizName(t), sub=t.type==='kiosk'?`${CAT_NAMES[t.base||'gum']||'Товар'} · ${g.name}`:`${tname(t)} · ${CFG.ZONES[t.zone].name}`;
   $('modal').classList.add('mid'); $('card').className='card bare';
   const img=t.type==='kiosk'?`img/pt_${t.base||'gum'}_${t.tier||1}.webp`:`img/biz_${t.i}.webp`;
-  $('card').innerHTML=`<div class="shop"><div class="banner"><small>${sub}</small><b>${title}</b><span class="big">${g?g.icon:bizIcon(t)}</span></div>${inner}</div><button class="xclose" id="xNo">✕</button>`;
+  $('card').innerHTML=`<div class="shop"><div class="banner"><b>${title}</b><span class="big">${g?g.icon:bizIcon(t)}</span></div>${inner}</div><button class="xclose" id="xNo">✕</button>`;
   $('xNo').onclick=()=>closeModal(); fitCard();
   if(!(window.claude&&claude.use)){const bn=$('card').querySelector('.banner'),im=new Image();im.onload=()=>{if(bn.isConnected){bn.classList.add('hasimg');bn.style.backgroundImage=`url(${img})`;fitCard();}};im.src=img;}
 }
@@ -982,7 +982,7 @@ async function shop(){
       return `<div class="wr ${S.trend===g.id?'trend':''}"><span class="ring" style="--p:${pc}%"><i>${g.icon}</i></span><div class="wn">${g.name}${S.trend===g.id?' 🔥×'+CFG.TREND_MULT:''}<small>${[...new Set(kk.map(k=>pointName(k)))].join(', ')} · ⟳ ${goodSales(g.id)}/круг · $${sellPrice(g.id)}</small></div><span class="wq">${st}/${c}</span><button data-g="${g.id}" ${free<=0||S.cash<p?'disabled':''}>${free<=0?'Полно':'+1 · $'+p}</button></div>`;}).join('');
     hintHtml('shop','Товар лежит в точках и продаётся, когда проходишь старт. Из этого же запаса собирается поставка в Союз — что отправишь, то уже не продашь.');
     $('modal').classList.add('mid'); $('card').className='card bare';
-    $('card').innerHTML=`<div class="shop"><div class="banner"><small>Оптовый склад · ${CFG.ZONES[S.tiles[S.pos].zone>=0?S.tiles[S.pos].zone:0].name}</small><b>Costco</b><span class="big">🏬</span></div>
+    $('card').innerHTML=`<div class="shop"><div class="banner"><b>Costco</b><span class="big">🏬</span></div>
       <div class="whead">Покупай товары для точек ${helpBtn('Товар лежит в точках и продаётся при проходе старта. Раскладывается сам, сначала в точки с большими продажами. Из него же собирается поставка.')}</div>
       ${ks.length?rows:'<p class="empty">Своих точек нет — товар негде хранить. Сначала купи точку.</p>'}
       ${perk().disc?`<p class="empty">Скидка Джонни ${perk().disc*100}%.</p>`:''}
