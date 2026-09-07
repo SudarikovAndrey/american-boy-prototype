@@ -279,6 +279,11 @@ const CFG = {
   SHOP_HARD:[{hard:20,price:'99 ₽'},{hard:60,price:'249 ₽'},{hard:150,price:'499 ₽'}], // пакеты харды (в прототипе выдаются сразу)
   SHOP_SOFT:[{mult:1,hard:3},{mult:3,hard:8},{mult:8,hard:20}], // нал за харду: сумма = mult × средняя цена точки лучшего открытого района // цены: сверхурочные, откуп от полиции, такси, место в контейнере, район ($ за 1💎)
   START_CASH: 250,
+  EVENT_START:null,            // 'YYYY-MM-DD' — дата старта ивента; новая партия начинается с текущего дня ивента (null — с дня 1)
+  LATE:{cashShare:0.5, cashCap:20000, earnByDay:[618,2093,6998,22434,61972,185210,971636], points:[0,2,4,6,8,10,11], catchupFree:1, bundle:{rub:249,rolls:10}},
+  // опоздавший: стартовый пакет = cashShare × заработок медианного F2P-бота за пропущенные дни (earnByDay — v12.0, умный бот, 2 захода) + points[день] прокачанных точек Брайтона с товаром;
+  // калибровка v12.1: F2P со старта дня 3 при 1,5 захода — билет 24% (такой же игрок с дня 1 — 40%), с бандлом «Догон» — 45%; все догоны бесплатно дали бы 48%, то есть больше, чем игроку дня 1 — отклонено
+  // догоняющая фура: пока поставок меньше, чем дней, после сегодняшней можно слать ещё одну за пропущенный день (награда пропущенного дня); первая бесплатно, дальше бандл «Догон»
   PARCEL_SLOTS: 6,
   PARCEL:{unitsPerSlot:[1,2,4,6,10,15,30], dayReward:[45,70,90,120,155,200,320]}, // место в фуре вмещает k шт одного товара (растёт по дням); очки дня = доля от лучшей возможной поставки × dayReward; лишние места дают больше 100%
   ZONES: [
@@ -388,13 +393,14 @@ function buildTiles(){
   }
   return t;
 }
-function newGame(){
+function newGame(startDay){
   S={day:1,rolls:CFG.ROLLS_PER_DAY,overtime:0,cash:CFG.START_CASH,pts:0,xp:0,pos:0,laps:0,tiles:buildTiles(),
      parcelSent:false,trend:null,loans:[],taxi:CFG.TAXI_PER_DAY,opened:[true,false,false],pot:0,jail:0,jailFine:0,tips:{},log:[],finished:false,stat:{earned:0,sold:0,parcels:0,bought:0},dstat:{earned:0,sold:0,pts:0,bought:0},q:null,bag:{},extraSlots:0,extraSlotsSoft:0,player:null,bp:{claimedFree:0,claimedPaid:0,paid:false},lbSeed:Math.floor(Math.random()*1e9),hard:CFG.START_HARD,taxiRides:0,lastTick:Date.now(),dayDate:dateKey(),runId:Math.random().toString(36).slice(2,10),startedAt:Date.now(),playMs:0,dayMs:{},sessions:1,chunkN:0};
   newQuest();
   log('Бруклин. В кармане $'+S.cash+', виза на 7 дней. Джонни ждёт первую поставку.');
-  S.startVersion=VERSION;S.startCfg=cfgHash(); save(); render(); track('new_game',{v:VERSION,cfg:cfgHash()});
-  setTimeout(async()=>{await askName();intro();},50);
+  {const d=startDay||eventDay();if(d>1)latePack(d);}
+  S.startVersion=VERSION;S.startCfg=cfgHash(); save(); render(); track('new_game',{v:VERSION,cfg:cfgHash(),startDay:S.day});
+  setTimeout(async()=>{await askName();await intro();if(S.late)await lateModal();},50);
 }
 // ---------- задания дня: лёгкое (ритм) и сложное (вызов); цели считаются от вчерашнего результата ----------
 const QTEXT={sell:g=>`Продай ${g} шт`,buy:g=>`Купи ${g} ${g===1?'точку':'точки'}`,upg:g=>`Прокачай ${g} раз`,parcel:g=>`Поставка на ${g}+ очков`,earn:g=>`Заработай $${g}`};
@@ -419,6 +425,7 @@ async function eventInfo(){
   if(S.trend){const g=good(S.trend),ks=goodKiosks(S.trend);rows.push(`<div class="row"><span class="n">🔥 Тренд дня: ${g.icon} ${g.name} ×${CFG.TREND_MULT}<small>сегодня продаётся по $${sellPrice(S.trend)} вместо $${g.sell}${ks.length?' · твои точки: '+[...new Set(ks.map(pointName))].join(', '):' · у тебя нет точек с этим товаром'}</small></span></div>`);}
   if(S.day===CFG.BLACK_FRIDAY_DAY)rows.push(`<div class="row"><span class="n">🛍 Чёрная пятница ×${CFG.BF_MULT}<small>все продажи сегодня дороже в ${CFG.BF_MULT} раза</small></span></div>`);
   if((S.loans||[]).length)rows.push(`<div class="row"><span class="n">🏦 Кредиты: −$${loanInterest()} за круг<small>списывается при проходе банка · ${S.loans.map(l=>l.name+' $'+l.principal).join(', ')}</small></span></div>`);
+  if(parcelsBehind()>(S.parcelSent?0:1))rows.push(`<div class="row"><span class="n">📦 Отстаёшь на ${parcelsBehind()-(S.parcelSent?0:1)} ${parcelsBehind()-(S.parcelSent?0:1)===1?'поставку':'поставки'}<small>после сегодняшней фуры — догоняющая: ${(S.catchups||0)<CFG.LATE.catchupFree?'первая бесплатно':S.catchBundle?'бандл куплен':'бандл «Догон» '+CFG.LATE.bundle.rub+' ₽'}</small></span></div>`);
   if(S.jail>0)rows.push(`<div class="row"><span class="n">🚔 Участок<small>осталось попыток на дубль: ${S.jail}</small></span></div>`);
   const now=new Date(),mid=new Date(now);mid.setHours(24,0,0,0);const h=Math.floor((mid-now)/36e5),m=Math.floor(((mid-now)%36e5)/6e4);
   const sched=`<div class="row"><span class="n">📅 Неделя<small>каждый день открывает то, что за деньги не купить</small></span></div>`+Array.from({length:CFG.DAYS},(_,k)=>k+1).map(d=>`<div class="row ${d===S.day?'today':d<S.day?'past':''}"><span class="n">День ${d}${d===S.day?' · сегодня':''}<small>${dayUnlocks(d,true).join(' · ')||'—'}</small></span></div>`).join('');
@@ -635,8 +642,36 @@ function dayReward(){return CFG.PARCEL.dayReward[Math.min(CFG.DAYS,Math.max(1,S.
 function baseOfGood(g){for(const b of CFG.GOODS.filter(x=>goodTier(x)===1)){let cur=b;for(let k=0;k<3&&cur;k++){if(cur.id===g.id)return b;cur=cur.next?good(cur.next):null;}}return g;}
 function possibleGoods(){return CFG.GOODS.filter(g=>{const b=baseOfGood(g);return S.opened[b.zone]&&S.day>=tierDay(b.zone,goodTier(g));});} // что в принципе можно везти сегодня
 function bestPtsToday(){return Math.max(1,...possibleGoods().map(g=>g.pts));}
-function parcelPts(box){const v=CFG.GOODS.reduce((a,g)=>a+(box[g.id]||0)*g.pts,0);return Math.round(v/(CFG.PARCEL_SLOTS*bestPtsToday())*dayReward());}
-function parcelAutoBox(share){const box={};CFG.GOODS.forEach(g=>box[g.id]=0);const k=slotUnits(),N=Math.max(1,Math.round(slots()*(share==null?1:share)));let used=0;
+function parcelPts(box,R){const v=CFG.GOODS.reduce((a,g)=>a+(box[g.id]||0)*g.pts,0);return Math.round(v/(CFG.PARCEL_SLOTS*bestPtsToday())*(R||dayReward()));}
+// ---------- опоздавшие: день ивента, стартовый пакет, догоняющая фура ----------
+function eventDay(){if(!CFG.EVENT_START)return 1;const d=Math.floor((Date.now()-new Date(CFG.EVENT_START+'T00:00:00').getTime())/864e5)+1;return Math.max(1,Math.min(CFG.DAYS,d));}
+function latePack(d){ // новая партия с дня d>1
+  S.day=d;S.dayDate=dateKey();CFG.ZONES.forEach((z,zi)=>{if(z.day<=d)S.opened[zi]=true;});
+  const L=CFG.LATE,earn=L.earnByDay.slice(0,d-1).reduce((a,b)=>a+b,0),cash=Math.min(L.cashCap,Math.round(earn*L.cashShare/10)*10);
+  S.cash+=cash;
+  const n=L.points[Math.min(d,CFG.DAYS)-1]||0,given=[];
+  for(let k=0;k<n;k++){const t=S.tiles.find(x=>x.type==='kiosk'&&x.zone===0&&!x.owner);if(!t)break;t.owner='you';t.capLvl=capTab(t).length;t.salesLvl=salTab(t).length;t.goods=cap(t);given.push(t.i);}
+  const t=given.length?S.tiles[given[0]]:null;
+  S.late={day:d,cash,tile:t?t.i:null,tiles:given};newQuest();
+  log(`Приехал на день ${d}. Джонни подсуетился: $${cash}${t?' и '+pointName(t)+' с товаром':''}.`);track('late_start',{day:d,cash,tile:t?t.i:null});
+}
+async function lateModal(){const l=S.late,t=l.tile!=null?S.tiles[l.tile]:null;
+  await modal(`<h2>🧢 Ты опоздал на ${l.day-1} ${l.day-1===1?'день':'дня'}</h2><p class="t">Ивент идёт с понедельника, сегодня день ${l.day}. Джонни подсуетился, пока тебя не было:</p>
+    <div class="row"><span class="n">💵 Нал на разгон</span><span class="v">$${l.cash}</span></div>
+    ${t?`<div class="row"><span class="n">${(l.tiles||[]).length>1?(l.tiles.length+' точки Брайтона'):good(t.good).icon+' '+pointName(t)}<small>прокачаны, полные товара</small></span><span class="v">твои</span></div>`:''}
+    <div class="row"><span class="n">📦 Догоняющая фура<small>после сегодняшней поставки можно отправить ещё одну — за пропущенный день. Первая бесплатно, дальше бандл «Догон»</small></span><span class="v">+${l.day-1}</span></div>
+    <p>Билет Джонни — 350 очков, они у тебя ещё в руках.</p>`,[{t:'Погнали',v:1,cls:'ok'}]);}
+function parcelsBehind(){return Math.max(0,S.day-(S.stat.parcels||0));} // сколько поставок недостаёт до «одна в день», включая сегодняшнюю
+function canCatchup(){return S.parcelSent&&parcelsBehind()>0&&((S.catchups||0)<CFG.LATE.catchupFree||!!S.catchBundle);}
+function catchIdx(){return Math.max(0,Math.min(CFG.DAYS,S.stat.parcels||1)-1);} // индекс самого раннего пропущенного дня
+function catchReward(){return CFG.PARCEL.dayReward[catchIdx()];}
+function catchUnits(){return CFG.PARCEL.unitsPerSlot[catchIdx()];} // догоняющая фура идёт на условиях пропущенного дня: и награда, и товара на место
+async function catchupOffer(){const b=CFG.LATE.bundle,n=parcelsBehind();
+  const v=await modal(`<h2>📦 Бандл «Догон» <small>${b.rub} ₽</small></h2><p class="t">Ты отстаёшь на ${n} ${n===1?'поставку':'поставки'}. Бесплатный догон использован.</p>
+    <div class="row"><span class="n">Все догоняющие поставки до конца недели</span><span class="v">∞</span></div>
+    <div class="row"><span class="n">🎲 Ходы сразу</span><span class="v">+${b.rolls}</span></div>`,[{t:`Купить · ${b.rub} ₽`,v:1,cls:'ok'},{t:'Позже',v:0}]);
+  if(v===1){S.catchBundle=true;S.rolls+=b.rolls;track('iap',{rub:b.rub,tr:'catchup_bundle'});track('catchup_bundle',{day:S.day,behind:n});log(`Купил бандл «Догон» за ${b.rub} ₽.`);render();return parcel(false,true);}}
+function parcelAutoBox(share,kk){const box={};CFG.GOODS.forEach(g=>box[g.id]=0);const k=kk||slotUnits(),N=Math.max(1,Math.round(slots()*(share==null?1:share)));let used=0;
   for(const g of CFG.GOODS.slice().sort((x,y)=>y.pts-x.pts)){while(used<N&&(box[g.id]+1)*k<=stock(g.id)){box[g.id]++;used++;}}return box;}
 function bagCount(){return Object.values(S.bag||{}).reduce((a,b)=>a+b,0);}
 function bagPts(){return CFG.GOODS.reduce((a,g)=>a+(S.bag[g.id]||0)*g.pts,0);}
@@ -729,7 +764,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='12.0', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='12.1', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
 let dbP=null, lastAct=0, pending=[];
@@ -1151,20 +1186,21 @@ async function taxi(){
 // ---------- кнопка поставки: открывает окно в любой момент, одна поставка в день ----------
 async function shipClick(){
   if(canFinish())return finish();
-  if(S.parcelSent){toast('Поставка сегодня уже ушла. Следующая — завтра.');return;}
+  if(S.parcelSent){if(parcelsBehind()>0)return canCatchup()?parcel(false,true):catchupOffer();toast('Поставка сегодня уже ушла. Следующая — завтра.');return;}
   return parcel();
 }
 
 // ---------- поставка: из запасов точек, при остановке на старте или в конце дня ----------
-async function parcel(forced){
+async function parcel(forced,catchUp){
   if(S.finished)return;
-  if(S.parcelSent){toast('Поставка сегодня уже ушла. Следующая — завтра.');return;}
-  const k=slotUnits(),R=dayReward(),best=CFG.GOODS.slice().sort((x,y)=>y.pts-x.pts).find(g=>possibleGoods().includes(g));
+  if(catchUp&&!canCatchup())return;
+  if(S.parcelSent&&!catchUp){toast('Поставка сегодня уже ушла. Следующая — завтра.');return;}
+  const k=catchUp?catchUnits():slotUnits(),R=catchUp?catchReward():dayReward(),best=CFG.GOODS.slice().sort((x,y)=>y.pts-x.pts).find(g=>possibleGoods().includes(g));
   const total=CFG.GOODS.reduce((a,g)=>a+Math.floor(stock(g.id)/k),0);
   if(total<=0){if(!forced)toast(`В точках нет товара на целое место: нужно по ${k} шт одного товара.`);return;}
   let box={}; CFG.GOODS.forEach(g=>box[g.id]=0);
-  const used=()=>Object.values(box).reduce((a,b)=>a+b,0), pts=()=>parcelPts(box);
-  const autofill=()=>{box=parcelAutoBox();};
+  const used=()=>Object.values(box).reduce((a,b)=>a+b,0), pts=()=>parcelPts(box,R);
+  const autofill=()=>{box=parcelAutoBox(1,k);};
   if(forced)autofill();
   const draw=()=>{
     const N=slots(),n=used(),p=pts(),share=Math.round(p/R*100);
@@ -1172,9 +1208,9 @@ async function parcel(forced){
     for(let i=n;i<N;i++)sl+=`<div class="slot"><small>×${k}</small></div>`;
     const canSlot=S.extraSlots<CFG.EXTRA_SLOT.perDay, hp=CFG.HARD.slot*Math.pow(2,S.extraSlots||0);
     const gs=CFG.GOODS.filter(g=>stock(g.id)>0||box[g.id]>0);
-    $('card').innerHTML=`<h2>📦 Поставка в Союз <small>${forced?'фура уходит':'1 в день'} · ${N} мест по ${k} шт</small>${helpBtn(`Одна поставка в день. Место в фуре вмещает ${k} шт одного товара, с каждым днём больше. Очки — доля от лучшей возможной поставки дня (${CFG.PARCEL_SLOTS} мест лучшего товара = ${R} очков); лишние места дают сверх того. Не отправишь сам — в полночь фура заберёт самое дорогое. Остатки за неделю сгорают.`)}</h2>
+    $('card').innerHTML=`<h2>📦 ${catchUp?'Догоняющая поставка':'Поставка в Союз'} <small>${catchUp?'за пропущенный день · '+R+' очков максимум':forced?'фура уходит':'1 в день'} · ${N} мест по ${k} шт</small>${helpBtn(`Одна поставка в день. Место в фуре вмещает ${k} шт одного товара, с каждым днём больше. Очки — доля от лучшей возможной поставки дня (${CFG.PARCEL_SLOTS} мест лучшего товара = ${R} очков); лишние места дают сверх того. Не отправишь сам — в полночь фура заберёт самое дорогое. Остатки за неделю сгорают.`)}</h2>
       ${hintHtml('parcel','Поставка — кнопка 📦 в доке, одна в день, из товара твоих точек. Что отправишь, то уже не продашь. Дорогой товар даёт больше очков за место. Очки — это билет Джонни.')}
-      ${forced?'<p class="t">День кончился. Фура забирает то, что положишь сейчас.</p>':''}
+      ${forced?'<p class="t">День кончился. Фура забирает то, что положишь сейчас.</p>':catchUp?`<p class="t">Вторая фура за день — за поставку, которую ты пропустил: место вмещает ${k} шт, как в тот день, и очки по награде того дня. Отстаёшь ещё на ${parcelsBehind()-1}.</p>`:''}
       <div class="slots">${sl}</div>
       <div class="row" style="border:0;padding:4px 0"><span class="n">Лучший товар дня: ${best?best.icon+' '+best.name:'—'}<small>полная фура из него — ${R} очков</small></span><span class="v">${p} <small>из ${R}</small></span></div>
       <div class="bar"><i style="width:${Math.min(100,share)}%"></i></div>`+
@@ -1185,8 +1221,8 @@ async function parcel(forced){
     $('card').querySelectorAll('.qty button').forEach(b=>b.onclick=()=>{const g=b.dataset.g;box[g]=Math.max(0,box[g]+ +b.dataset.d);draw();});
     $('mAuto').onclick=()=>{autofill();draw();};
     const mh=$('mSlotH'); if(mh)mh.onclick=()=>{if(spendHard(hp)){track('slot_buy',{cost:hp,cur:'hard'});S.extraSlots++;log(`Докупил место в контейнере за 💎 ${hp}.`);draw();render();}};
-    $('mSend').onclick=()=>{const L0=level(),pBefore=S.pts,units=n*k;CFG.GOODS.forEach(g=>{if(box[g.id])fly(g.icon,AT.card(),AT.hub(),Math.min(box[g.id],4),{pulse:'bHub'});});CFG.GOODS.forEach(g=>takeGoods(g.id,box[g.id]*k));S.pts+=p;S.xp+=p;S.parcelSent=true;S.stat.parcels++;S.dstat.pts+=p;qProg('parcel',p,true);
-      track('parcel',{units,slotsUsed:n,pts:p,max:R,slots:N,k,extra:S.extraSlots,forced:!!forced,box});log(`📦 Поставка ушла: ${units} шт, +${p} очков.`);closeModal(1);if(S.day>=CFG.DAYS)setTimeout(()=>toast('🏁 Последняя поставка недели ушла. Остатки товара, нал и точки пойдут в зачёт — жми «итоги» в доке.',6000),900);
+    $('mSend').onclick=()=>{const L0=level(),pBefore=S.pts,units=n*k;CFG.GOODS.forEach(g=>{if(box[g.id])fly(g.icon,AT.card(),AT.hub(),Math.min(box[g.id],4),{pulse:'bHub'});});CFG.GOODS.forEach(g=>takeGoods(g.id,box[g.id]*k));S.pts+=p;S.xp+=p;if(catchUp){S.catchups=(S.catchups||0)+1;}else S.parcelSent=true;S.stat.parcels++;S.dstat.pts+=p;qProg('parcel',p,true);
+      track('parcel',{units,slotsUsed:n,pts:p,max:R,slots:N,k,extra:S.extraSlots,forced:!!forced,catchUp:!!catchUp,box});log(`📦 Поставка ушла: ${units} шт, +${p} очков.`);closeModal(1);if(S.day>=CFG.DAYS)setTimeout(()=>toast('🏁 Последняя поставка недели ушла. Остатки товара, нал и точки пойдут в зачёт — жми «итоги» в доке.',6000),900);
       const L=level();
       (async()=>{const before=CFG.MILESTONES.filter(m=>pBefore>=m.pts).length;for(const m of CFG.MILESTONES.slice(before).filter(m=>S.pts>=m.pts))await milestoneModal(m);
         if(L>L0)await modal(`<h2>🧢 Джонни — уровень ${L}!</h2><p class="t">Новый перк: <b>${CFG.PERKS[L]||'—'}</b></p>`,[{t:'Красава',v:1,cls:'ok'}]);})();};
@@ -1328,6 +1364,7 @@ function settings(){
     <div class="row"><span class="n">Ходов в день (с новой игры)</span><input type="number" id="iRolls" value="${CFG.ROLLS_PER_DAY}"></div>
     <div class="row"><span class="n">Старт $ (с новой игры)</span><input type="number" id="iCash" value="${CFG.START_CASH}"></div>
     <div class="row"><span class="n">Мест в контейнере</span><input type="number" id="iSlots" value="${CFG.PARCEL_SLOTS}"></div>
+    <div class="row"><span class="n">Новая игра с дня<small>опоздавший: стартовый пакет и догоняющая фура</small></span><input type="number" id="iStart" value="1" min="1" max="${CFG.DAYS}"></div>
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
@@ -1342,7 +1379,7 @@ function settings(){
   $('cHard').onclick=()=>{S.hard+=50;track('debug',{what:'hard',n:50});render();toast('+💎 50');};
   $('cExport').onclick=()=>exportRun();
 
-  $('cReset').onclick=()=>{apply();closeModal();newGame();};
+  $('cReset').onclick=()=>{apply();const d=Math.max(1,Math.min(CFG.DAYS,+$('iStart').value||1));closeModal();newGame(d);};
   $('cClose').onclick=()=>{apply();closeModal();};
 }
 
@@ -1462,7 +1499,7 @@ function draw(){
 }
 function render(){
   $('sDay').textContent=`${S.day}/${CFG.DAYS}`;$('tJ').textContent='ур. '+level();$('sRolls').textContent=S.rolls+'/'+CFG.ROLLS_PER_DAY;$('sCash').textContent=S.cash;$('sCash').classList.toggle('neg',S.cash<0);$('sHard').textContent=S.hard;
-  const taxiOn=true, shopOn=S.stat.parcels>0||S.day>1||S.rolls<=0, canShip=!S.parcelSent&&myKiosks().reduce((a,t)=>a+t.goods,0)>0;
+  const taxiOn=true, shopOn=S.stat.parcels>0||S.day>1||S.rolls<=0, canShip=(!S.parcelSent||parcelsBehind()>0)&&myKiosks().reduce((a,t)=>a+t.goods,0)>0;
   $('tTaxi').textContent=taxiOn?'💎 '+taxiPrice():'позже';
   const ev=[];if(S.trend)ev.push(`🔥 ${good(S.trend).name} ×${CFG.TREND_MULT}`);if(S.day===CFG.BLACK_FRIDAY_DAY)ev.push('🛍×'+CFG.BF_MULT);if((S.loans||[]).length)ev.push('🏦 −$'+loanInterest()+'/круг');
   if(S.jail>0)ev.push(`🚔 ${S.jail} попытки`);
@@ -1473,7 +1510,7 @@ function render(){
   $('bTaxi').classList.toggle('blink',taxiOn&&!moving&&myKiosks().length>0&&myKiosks().reduce((a,t)=>a+t.goods,0)===0&&S.hard>=taxiPrice()&&S.rolls>0);
   $('bShop').innerHTML=`<span>🛒${S.tips.shopOpened||!shopOn?'':'<i class="dot"></i>'}</span><small>${shopOn?'Магазин':'позже'}</small>`;$('bShip').className='dk '+((canShip||canFinish())?'ok':'')+(canFinish()?' blink':'');
   {const nm=nextMilestone();$('bHub').textContent=`${ready?'🎁 ':'🎫 '}${S.pts}/${nm?nm.pts:CFG.MILESTONES.slice(-1)[0].pts} · #${lbPlace()}`;}$('bHub').className='chip'+(ready?' okc':'');
-  $('tShip').textContent=canFinish()?'итоги':S.parcelSent?'ушла':canShip?'собрать':'нет товара';
+  $('tShip').textContent=canFinish()?'итоги':S.parcelSent?(parcelsBehind()>0?'догон':'ушла'):canShip?'собрать':'нет товара';
   const ks=myKiosks();
   {const tot=ks.reduce((a,t)=>a+t.goods,0),totc=ks.reduce((a,t)=>a+cap(t),0);$('inv').hidden=!ks.length;$('invList').hidden=!invOpen;
    $('invBtn').innerHTML=`<em>📦</em><i><b style="width:${totc?Math.round(tot/totc*100):0}%"></b></i><small>${invOpen?'▾':tot+'/'+totc}</small>`;
