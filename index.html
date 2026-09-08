@@ -239,7 +239,7 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
     <div class="bar1">
       <span class="cur"><i class="ic g">$</i><b id="sCash">250</b></span>
       <span class="cur"><i class="ic b">💎</i><b id="sHard">5</b></span>
-      <span class="cur"><i class="ic o">📅</i><b id="sDay">1/7</b></span>
+      <span class="cur" id="sDayPill" style="cursor:pointer"><i class="ic o">📅</i><b id="sDay">1/7</b></span>
     </div>
     <div class="bar2" id="qrow"><button class="qchip dark" id="sTimer"><span></span></button><button class="qchip" id="q0"><span></span><i></i></button><button class="qchip" id="q1"><span></span><i></i></button></div>
     <span id="sEvent" hidden></span>
@@ -795,9 +795,12 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='12.3', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='12.4', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
-const TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (например, веб-приложение Google Apps Script). Пусто — только локальный лог и экспорт
+let TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (веб-приложение Google Apps Script и т.п.)
+// приёмник можно задать ссылкой ?tm=<url> — адрес запоминается в браузере, дальше все партии уходят сами
+try{const q=new URLSearchParams(location.search).get('tm'); if(q!==null){q?localStorage.setItem('americanboy_tm',q):localStorage.removeItem('americanboy_tm');} TELEMETRY_URL=localStorage.getItem('americanboy_tm')||TELEMETRY_URL;}catch(e){}
+const TMQ='americanboy_tmq'; // очередь неотправленного: интернет пропал — уйдёт при следующей отправке
 let dbP=null, lastAct=0, pending=[];
 try{pending=JSON.parse(localStorage.getItem(LOGK)||'[]');}catch(e){pending=[];}
 function getDb(){if(!dbP){dbP=(window.claude&&claude.use)?claude.use('db').catch(()=>null):Promise.resolve(null);}return dbP;}
@@ -813,8 +816,17 @@ function summaryDoc(){const ks=myKiosks();return{runId:S.runId,player:S.player||
 // вне артефакта: полный лог партии копится в localStorage, при заданном TELEMETRY_URL уходит туда же порциями
 function localFlush(final){ if(!S||!pending.length)return; const chunk=pending.splice(0,pending.length);
   try{const all=JSON.parse(localStorage.getItem(FULLK)||'{}'); if(all.runId!==S.runId){all.runId=S.runId;all.events=[];} all.events=(all.events||[]).concat(chunk); all.summary=summaryDoc(); localStorage.setItem(FULLK,JSON.stringify(all)); localStorage.setItem(LOGK,'[]');}catch(e){}
-  if(TELEMETRY_URL){try{fetch(TELEMETRY_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({summary:summaryDoc(),events:chunk})});}catch(e){}} }
-function exportRun(){ let all={}; try{all=JSON.parse(localStorage.getItem(FULLK)||'{}');}catch(e){}
+  if(TELEMETRY_URL)sendTm({summary:summaryDoc(),events:chunk}); }
+function sendTm(payload){ if(!TELEMETRY_URL)return;
+  let q=[]; try{q=JSON.parse(localStorage.getItem(TMQ)||'[]');}catch(e){}
+  if(payload)q.push(payload); if(!q.length)return;
+  const batch=q.splice(0,q.length);
+  try{localStorage.setItem(TMQ,'[]');}catch(e){}
+  Promise.all(batch.map(b=>fetch(TELEMETRY_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)}).catch(()=>{ // не ушло — вернём в очередь
+      try{const cur=JSON.parse(localStorage.getItem(TMQ)||'[]');cur.push(b);localStorage.setItem(TMQ,JSON.stringify(cur));}catch(e){}
+    }))).catch(()=>{});
+}
+function exportRun(){ sendTm(null); let all={}; try{all=JSON.parse(localStorage.getItem(FULLK)||'{}');}catch(e){}
   const events=(all.runId===S.runId?(all.events||[]):[]).concat(pending); const data=JSON.stringify({summary:summaryDoc(),events});
   const name=`americanboy_${(S.player||'anon').replace(/[^\wа-яА-Я-]/g,'_')}_${S.runId}.json`;
   track('export',{events:events.length});
@@ -835,7 +847,9 @@ async function flush(final){
 }
 function touch(){const now=Date.now();if(S&&lastAct&&now-lastAct<60000){S.playMs=(S.playMs||0)+(now-lastAct);S.dayMs=S.dayMs||{};S.dayMs[S.day]=(S.dayMs[S.day]||0)+(now-lastAct);}lastAct=now;}
 document.addEventListener('pointerdown',e=>{touch();if(!$('tip').hidden&&!e.target.closest('.qm'))hideTip();},{capture:true});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){lastAct=0;save();flush();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){lastAct=0;save();flush();}else sendTm(null);});
+window.addEventListener('pagehide',()=>{save();flush(true);});
+setTimeout(()=>sendTm(null),1500); // при запуске добиваем то, что не ушло в прошлый раз
 const minTxt=ms=>{const m=Math.round((ms||0)/60000);return m<1?'меньше минуты':m+' мин';};
 
 // ---------- перелёты ресурсов ----------
@@ -1428,10 +1442,23 @@ async function finish(){
   modalSticky=false; newGame();
 }
 
+// окно дня: что открылось, сколько осталось, и «закончить день» — в прототипе неделю проходят за один сеанс
+async function dayCard(){
+  const u=dayUnlocks(S.day,true), nx=CFG.MILESTONES.find(m=>S.pts<m.pts);
+  const v=await modal(`<h2>📅 День ${S.day} из ${CFG.DAYS}</h2>
+    <div class="row"><span class="n">Ходы</span><span class="v">${S.rolls}</span></div>
+    <div class="row"><span class="n">Поставка</span><span class="v">${S.parcelSent?'ушла':'не ушла'}</span></div>
+    <div class="row"><span class="n">Очки${nx?': до «'+nx.name+'»':''}</span><span class="v">${S.pts}${nx?'/'+nx.pts:''}</span></div>
+    ${u.length?`<div class="row"><span class="n">Сегодня открылось<small>${u.join(' · ')}</small></span></div>`:''}
+    <p class="t">В боевом ивенте день сменяется в полночь. В прототипе неделю можно пройти за один сеанс — заканчивай день, когда наиграешься.</p>`,
+    [{t:S.day>=CFG.DAYS?'🏁 Подвести итоги недели':'🌙 Закончить день',v:2,cls:'ok'},{t:'Играть дальше',v:0,cls:'sec'}]);
+  if(v===2){ if(S.day>=CFG.DAYS&&S.parcelSent)return finish(); track('day_skip',{day:S.day,rolls:S.rolls,pts:S.pts}); return sleep(); }
+}
+
 // ---------- настройки / читы ----------
 function settings(){
   $('card').innerHTML=`<h2>⚙ Тест-стенд</h2>
-    <div class="row"><span class="n">⚠️ Отладка: день</span><div class="qty"><button id="cDay2">Следующий день</button></div></div>
+    <div class="row"><span class="n">Закончить день<small>неделя проходится за один сеанс — то же по тапу на 📅 в шапке</small></span><div class="qty"><button id="cDay2">Закончить</button></div></div>
     <div class="row"><span class="n">⚠️ Отладка: время ×</span><div class="qty"><button data-ts="1">×1</button><button data-ts="60">×60</button><button data-ts="600">×600</button></div></div>
     <div class="row"><span class="n">Скорость</span><div class="qty"><button data-s="1">×1</button><button data-s="3">×3</button><button data-s="8">×8</button></div></div>
     <div class="row"><span class="n">Ходов в день (с новой игры)</span><input type="number" id="iRolls" value="${CFG.ROLLS_PER_DAY}"></div>
@@ -1439,7 +1466,7 @@ function settings(){
     <div class="row"><span class="n">Мест в контейнере</span><input type="number" id="iSlots" value="${CFG.PARCEL_SLOTS}"></div>
     <div class="row"><span class="n">Новая игра с дня<small>опоздавший: стартовый пакет и догоняющая фура</small></span><input type="number" id="iStart" value="1" min="1" max="${CFG.DAYS}"></div>
     <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
-    <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
+    <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':TELEMETRY_URL?'уходит на сервер сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
     <p style="font-size:12px">Прототип «Америкэн бой» v${VERSION} · баланс ${cfgHash()}. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
@@ -1631,7 +1658,7 @@ cv.addEventListener('click',e=>{
   else toast(`${t.type==='biz'?'🏢 '+bizName(t):pointName(t)+' · '+good(t.good).icon+' '+good(t.good).name} · $${t.price} — купить можно, остановившись на клетке.`);
 });
 $('tip').onclick=hideTip;$('modal').addEventListener('click',e=>{if(e.target===$('modal')&&!modalSticky)closeModal();});$('toast').onclick=()=>{clearTimeout(toastT);$('toast').style.opacity=0;$('toast').style.pointerEvents='none';};$('bHub').onclick=()=>{if(!moving)eventHub();};$('sTimer').onclick=()=>{if(!moving)eventInfo();};[0,1].forEach(i=>{$('q'+i).onclick=()=>{if(moving)return;const q=S.q[i];if(q&&q.done&&!q.claimed){const r=q.reward;if(r.rolls){fly('🎲',AT.el('q'+i),AT.dice(),3);S.rolls+=r.rolls;}if(r.cash){fly('💵',AT.el('q'+i),AT.cash(),flyN(r.cash),{pulse:'sCash'});S.cash+=r.cash;}q.claimed=true;track('quest_claim',{id:q.id,goal:q.goal,reward:r});toast('🎯 Награда получена');save();render();}else if(q)toast(`🎯 ${q.text} · ${Math.min(q.prog,q.goal)}/${q.goal} · ${rwText(q.reward)}`);};});
-$('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('bJohnny').onclick=()=>{if(!moving)eventHub();}; /* аватар и кнопка дока открывают ивентовое окно; карточка Джонни — из него */ $('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
+$('bJohnnyTop').onclick=()=>{if(!moving)eventHub();};$('sDayPill').onclick=()=>{if(!moving)dayCard();};$('bJohnny').onclick=()=>{if(!moving)eventHub();}; /* аватар и кнопка дока открывают ивентовое окно; карточка Джонни — из него */ $('bShip').onclick=()=>{if(!moving)shipClick();};$('tilebar').onclick=()=>{if(moving)return;const t=S.tiles[S.pos];if(t.type==='kiosk')kioskWindow(t);else if(t.type==='biz')bizWindow(t);else if(t.type==='wh')shop();else if(t.type==='bank')bank();};$('bShop').onclick=()=>{if(!moving){S.tips.shopOpened=true;shopHard();}};
 $('bRoll').onclick=roll;$('bTaxi').onclick=taxi;$('bSettings').onclick=settings;$('invBtn').onclick=()=>{invOpen=!invOpen;render();};
 window.addEventListener('resize',()=>{fit();draw();if(!$('tip').hidden)positionTip();if(!$('modal').hidden)fitCard();});
 if(window.ResizeObserver)new ResizeObserver(()=>{fit();draw();}).observe(cv);
