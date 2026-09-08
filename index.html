@@ -113,7 +113,7 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 #tilebar.pulse{animation:tbPulse .6s ease-in-out 4}@keyframes tbPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px);box-shadow:0 7px 0 #0005}}
 button{border:0;border-radius:12px;cursor:pointer;font-weight:700;touch-action:manipulation;font-size:15px;padding:10px 14px;background:var(--red);color:#fff;box-shadow:0 3px 0 var(--red2)}
 button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--red2)}
-button:disabled{background:#a29a90;box-shadow:0 3px 0 #837c73;color:#f2eee8;opacity:1;cursor:default}
+button:disabled,.shop .up button:not(.qm):disabled,.shop .wide button:disabled,.shop .buy:disabled,#card button:disabled,.mbtns button:disabled,.qty button:disabled,.row button:disabled{background:#a29a90;box-shadow:0 3px 0 #837c73;color:#f2eee8;opacity:1;cursor:default}
 button:disabled small{color:#f2eee8;opacity:.8}
 button.sec{background:#8a7e6e;box-shadow:0 3px 0 #5f554a}
 button.ok{background:var(--green);box-shadow:0 3px 0 #2d6b38}
@@ -584,7 +584,7 @@ function migrate(){
   if(!S.lastTick)S.lastTick=Date.now(); if(!S.dayDate)S.dayDate=dateKey();
   if(S.loan&&!(S.loans||[]).length){S.loans=[{tier:1,name:'Обычный',principal:S.loan.principal,rate:0.08,strikes:S.loan.strikes||0,maxStrikes:2}];} S.loan=undefined;
   if(!Array.isArray(S.tiles)||S.tiles.length!==40)S.tiles=buildTiles();
-  S.tiles.forEach((t,i)=>{if(t.tier===undefined)t.tier=1;if(t.price0===undefined&&(t.type==='kiosk'||t.type==='biz')&&t.zone>=0){const mult=CFG.TIER_PRICE_MULT[t.type],rng=CFG[t.type==='biz'?'BIZ_PRICE':'KIOSK_PRICE'][t.zone];let p=t.price;for(let k=(t.tier||1)-1;k>=1;k--)p=Math.round(p/mult[k]/10)*10;t.price0=Math.min(rng[1],Math.max(rng[0],p));}if(t.type==='kiosk'&&t.good&&good(t.good)&&goodTier(good(t.good))!==t.tier)t.tier=goodTier(good(t.good));if(t.type==='kiosk'&&!t.base){const gs=CFG.GOODS.filter(g=>g.zone===t.zone);if(gs.length)t.base=gs[t.i%gs.length].id;}if(t.type==='kiosk'&&t.tier>1){const base=CFG.GOODS.filter(g=>g.zone===t.zone);let g=base[t.i%base.length];for(let k=1;k<t.tier&&g.next;k++)g=good(g.next);if(t.good!==g.id){t.good=g.id;t.goods=0;}t.price=CFG.TIER_PRICE_BASE.kiosk[t.tier-1];}if(t.capLvl===undefined)t.capLvl=1;if(t.salesLvl===undefined)t.salesLvl=1;if(t.goods===undefined)t.goods=0;if(t.type==='kiosk'){t.capLvl=Math.min(t.capLvl,capTab(t).length);t.salesLvl=Math.min(t.salesLvl,salTab(t).length);}});
+  S.tiles.forEach((t,i)=>{if(t.tier===undefined)t.tier=1;if(t.price0===undefined&&(t.type==='kiosk'||t.type==='biz')&&t.zone>=0){const mult=CFG.TIER_PRICE_MULT[t.type],rng=CFG[t.type==='biz'?'BIZ_PRICE':'KIOSK_PRICE'][t.zone];let p=t.price;for(let k=(t.tier||1)-1;k>=1;k--)p=Math.round(p/mult[k]/10)*10;t.price0=Math.min(rng[1],Math.max(rng[0],p));}if(t.type==='kiosk'&&t.good&&good(t.good)&&goodTier(good(t.good))!==t.tier)t.tier=goodTier(good(t.good));if(t.type==='kiosk'&&!t.base){const gs=CFG.GOODS.filter(g=>g.zone===t.zone);if(gs.length)t.base=gs[t.i%gs.length].id;}if(t.type==='kiosk'&&t.tier>1){const base=CFG.GOODS.filter(g=>g.zone===t.zone);let g=base[t.i%base.length];for(let k=1;k<t.tier&&g.next;k++)g=good(g.next);if(t.good!==g.id){t.good=g.id;t.goods=0;}t.price=tierPrice(t.type,t.price0!==undefined?t.price0:t.price,t.tier);/* v13.3: раньше ставилась минимальная база тира и дорогие точки дешевели в разы */}if(t.capLvl===undefined)t.capLvl=1;if(t.salesLvl===undefined)t.salesLvl=1;if(t.goods===undefined)t.goods=0;if(t.type==='kiosk'){t.capLvl=Math.min(t.capLvl,capTab(t).length);t.salesLvl=Math.min(t.salesLvl,salTab(t).length);}});
   // раскладка сервисных клеток текущей версии — если сохранение из версии с другой раскладкой, подтягиваем типы
   const ref=buildTiles(); S.tiles.forEach((t,i)=>{const r=ref[i];if(r.type!=='kiosk'&&r.type!=='biz'&&t.type!==r.type&&!t.owner){Object.assign(t,r);} if(r.zone===-1)t.zone=-1;});
   if(!S.tiles.some(t=>t.type==='wh')){S.tiles.forEach((t,i)=>{const r=ref[i];if((r.type==='wh'||r.type==='bank')&&t.type!==r.type){Object.assign(t,{type:r.type,owner:null,goods:0,capLvl:1,salesLvl:1,tier:1});}});}
@@ -769,6 +769,10 @@ function dayUnlocks(d,withZones){const out=[];
   if(d===CFG.BLACK_FRIDAY_DAY)out.push(`🛍 Чёрная пятница: продажи ×${CFG.BF_MULT}`);
   if(d===CFG.DAYS)out.push('🏁 Последний день: вечером итоги');
   return out;}
+// цена здания на нужном тире: считаем от базовой цены клетки, а не от минимальной базы тира
+function tierPrice(type,price0,tier){const B=CFG.TIER_PRICE_BASE[type],M=CFG.TIER_PRICE_MULT[type];let p=price0||0;
+  for(let k=2;k<=(tier||1);k++)p=Math.max(B[k-1],Math.round(p*M[k-1]/10)*10);
+  return p;}
 function evolvedPrice(t){const nt=evolveTarget(t);if(nt<0)return t.price;return Math.max(CFG.TIER_PRICE_BASE[t.type][nt-1],Math.round(t.price*CFG.TIER_PRICE_MULT[t.type][nt-1]/10)*10);}
 function evolveCost(t){const nt=evolveTarget(t);if(nt<0)return 0;
   if(t.type==='biz'){const np=evolvedPrice(t),newFee=Math.max(1,Math.round(np*CFG.BIZ.feePct*Math.pow(CFG.BIZ.feeLevelMult,klevel(t)-1)*perk().fee));return Math.max(CFG.EVOLVE_COST[(t.tier||1)]||0,Math.round((newFee-fee(t))*paybackLaps()/10)*10);}
@@ -811,7 +815,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='13.2', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='13.3', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 let TELEMETRY_URL='https://script.google.com/macros/s/AKfycbwWyE62gs3S_sF3NuT4iAktoNcXkq1uzjJIgO_pCfJjjjnvgN-2W3FOBHsZ2yqSzhCi/exec'; // приёмник партий вне артефакта: Apps Script → таблица «Америкэн бой — партии тестировщиков». Отключить в конкретном браузере: ?tm=
 // приёмник можно задать ссылкой ?tm=<url> — адрес запоминается в браузере, дальше все партии уходят сами
@@ -1134,7 +1138,7 @@ async function shop(){ track('window',{w:'costco',cash:S.cash,day:S.day});
     const gs=CFG.GOODS.filter(g=>goodKiosks(g.id).length).sort((a,b)=>buyPrice(a.id)-buyPrice(b.id)); // только товары, под которые есть свои точки; от дешёвого к дорогому
     const ks=myKiosks(), need=ks.reduce((s,t)=>s+(cap(t)-t.goods)*buyPrice(t.good),0), minP=Math.min(...ks.filter(t=>t.goods<cap(t)).map(t=>buyPrice(t.good)),Infinity);
     const rows=gs.map(g=>{const kk=goodKiosks(g.id),c=goodCap(g.id),st=stock(g.id),p=buyPrice(g.id),free=c-st,pc=c?Math.round(st/c*100):0;
-      return `<div class="wr ${S.trend===g.id?'trend':''}"><span class="ring" style="--p:${pc}%"><i>${g.icon}</i></span><div class="wn">${g.name}${S.trend===g.id?' 🔥×'+CFG.TREND_MULT:''}<small>${[...new Set(kk.map(k=>pointName(k)))].join(', ')} · ⟳ ${goodSales(g.id)}/круг · $${sellPrice(g.id)}</small></div><span class="wq">${st}/${c}</span><button data-g="${g.id}" ${free<=0||S.cash<p?'disabled':''}>${free<=0?'Полно':'+1 · $'+p}</button></div>`;}).join('');
+      return `<div class="wr ${S.trend===g.id?'trend':''}"><span class="ring" style="--p:${pc}%"><i>${g.icon}</i></span><div class="wn">${g.name}${S.trend===g.id?' 🔥×'+CFG.TREND_MULT:''}<small>${[...new Set(kk.map(k=>pointName(k)))].join(', ')} · ⟳ ${goodSales(g.id)}/круг · $${sellPrice(g.id)}</small></div><span class="wq">${st}/${c}</span><button data-g="${g.id}" title="${free<=0?'склад полон':S.cash<p?'не хватает $':''}" ${free<=0||S.cash<p?'disabled':''}>${free<=0?'Полно':'+1 · $'+p}</button></div>`;}).join('');
     hintHtml('shop','Товар лежит в точках и продаётся, когда проходишь старт. Из этого же запаса собирается поставка в Союз — что отправишь, то уже не продашь.');
     $('modal').classList.add('mid'); $('card').className='card bare';
     $('card').innerHTML=`<div class="shop"><div class="banner"><b>Costco</b><span class="big">🏬</span></div>
