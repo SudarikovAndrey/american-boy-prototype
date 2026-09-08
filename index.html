@@ -804,7 +804,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='12.9', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='13.0', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 let TELEMETRY_URL='https://script.google.com/macros/s/AKfycbwWyE62gs3S_sF3NuT4iAktoNcXkq1uzjJIgO_pCfJjjjnvgN-2W3FOBHsZ2yqSzhCi/exec'; // приёмник партий вне артефакта: Apps Script → таблица «Америкэн бой — партии тестировщиков». Отключить в конкретном браузере: ?tm=
 // приёмник можно задать ссылкой ?tm=<url> — адрес запоминается в браузере, дальше все партии уходят сами
@@ -817,7 +817,7 @@ function track(type,data){
   if(!S)return;
   pending.push(Object.assign({t:Date.now(),type,day:S.day,lap:S.laps,pos:S.pos,cash:S.cash,hard:S.hard,pts:S.pts,rolls:S.rolls,playMs:Math.round(S.playMs||0)},data||{}));
   try{localStorage.setItem(LOGK,JSON.stringify(pending.slice(-400)));}catch(e){}
-  if(pending.length>=25)flush();
+  if(pending.length>=10)flush();
 }
 function summaryDoc(){const ks=myKiosks();return{runId:S.runId,player:S.player||null,version:VERSION,cfg:cfgHash(),startVersion:S.startVersion||null,startCfg:S.startCfg||null,startedAt:S.startedAt,updatedAt:Date.now(),day:S.day,laps:S.laps,pts:S.pts,cash:S.cash,hard:S.hard,level:level(),
       playMin:Math.round((S.playMs||0)/60000*10)/10,dayMin:Object.fromEntries(Object.entries(S.dayMs||{}).map(([d,ms])=>[d,Math.round(ms/60000*10)/10])),sessions:S.sessions||1,
@@ -857,6 +857,7 @@ async function flush(final){
 function touch(){const now=Date.now();if(S&&lastAct&&now-lastAct<60000){S.playMs=(S.playMs||0)+(now-lastAct);S.dayMs=S.dayMs||{};S.dayMs[S.day]=(S.dayMs[S.day]||0)+(now-lastAct);}lastAct=now;}
 document.addEventListener('pointerdown',e=>{touch();if(!$('tip').hidden&&!e.target.closest('.qm'))hideTip();},{capture:true});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){lastAct=0;save();flush();}else sendTm(null);});
+setInterval(()=>{if(S&&pending.length)flush();},30000); // раз в полминуты досылаем накопленное: раньше короткая сессия не попадала в сбор
 window.addEventListener('pagehide',()=>{save();flush(true);});
 setTimeout(()=>sendTm(null),1500); // при запуске добиваем то, что не ушло в прошлый раз
 const minTxt=ms=>{const m=Math.round((ms||0)/60000);return m<1?'меньше минуты':m+' мин';};
@@ -934,7 +935,7 @@ async function roll(){
     if(S.pos===0) await lapDone(dbl);
     if(t.type==='bank'&&(S.loans||[]).length){const neg=loanCharge();if(neg){await bankThreat();if(!last)break;}} // прошёл банк — заплатил процент; ушёл в минус — коллекторы тормозят и предупреждают
     if((t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)){
-      const biz=t.type==='biz', f=Math.round(fee(t)*(biz&&last?CFG.BIZ.landMult:1)*boostOf(t));
+      const biz=t.type==='biz', f=Math.round(fee(t)*(biz&&last?CFG.BIZ.landMult:1)*useBoost(t));
       S.cash+=f;S.stat.earned+=f;S.dstat.earned+=f;qProg('earn',f);
       fly('💵',AT.tile(t.i),AT.cash(),biz?flyN(f):1,{pulse:'sCash'});
       if(biz&&last){float(t.i,'💰 +$'+f+' касса!','#ffd54f',1.6);log(`${bizName(t)}: остановка — снял кассу $${f} (×${CFG.BIZ.landMult}).`);}
@@ -962,7 +963,7 @@ function loop(now){
 }
 async function lapDone(dbl){
   S.laps++; let income=0, units=0; S.pot+=CFG.POT_PER_LAP*S.day*S.day;
-  for(const t of myKiosks()){const n=Math.min(sales(t),t.goods);if(n<=0)continue;t.goods-=n;units+=n;income+=Math.round(n*sellPrice(t.good)*boostOf(t));fly(good(t.good).icon,AT.tile(t.i),AT.home(),Math.min(n,3));}
+  for(const t of myKiosks()){const n=Math.min(sales(t),t.goods);if(n<=0)continue;t.goods-=n;units+=n;income+=Math.round(n*sellPrice(t.good)*useBoost(t));fly(good(t.good).icon,AT.tile(t.i),AT.home(),Math.min(n,3));}
   if(dbl&&perk().dbl)income*=2;
   if(income>0){S.cash+=income;S.stat.earned+=income;S.stat.sold+=units;S.dstat.earned+=income;S.dstat.sold+=units;qProg('sell',units);qProg('earn',income);fly('💵',AT.home(),AT.cash(),flyN(income),{delay:450,pulse:'sCash'});float(0,'+$'+income+' продажи','#8bc34a');log(`Круг ${S.laps}: продано ${units} шт на $${income}.`);}
   else{log(`Круг ${S.laps}: точки пустые, продавать нечего.`);if(myKiosks().length)hint('empty','Точки пустые — продавать нечего. Остановись на Costco или вызови 🚕 такси до склада за харду.');}
@@ -1216,14 +1217,16 @@ async function potTile(){
 // ---------- инкассатор: раскидывает деньги и неприятности по стройке ----------
 // множители на день: когда свободных клеток не осталось, события вешают ×1,5 и ×0,5 на точки и бизнесы
 function boostOf(t){return t.boost&&t.boost.day===S.day?t.boost.m:1;}
+// множитель одноразовый: сработал на первом же сборе или продаже и погас
+function useBoost(t){const m=boostOf(t);if(m!==1){t.boost=null;float(t.i,(m>1?'×'+String(m).replace('.',',')+' сработал':'×'+String(m).replace('.',',')),m>1?'#8bc34a':'#ef5350',1.2);}return m;}
 async function boostRain(good){
   const own=S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)&&!(t.boost&&t.boost.day===S.day));
   if(!own.length)return false;
   own.sort(()=>Math.random()-0.5);
   const n=Math.min(good?3:2,own.length),hit=own.slice(0,n);
   hit.forEach(t=>{t.boost={m:good?1.5:0.5,day:S.day};float(t.i,(good?'×1,5':'×0,5'),good?'#8bc34a':'#ef5350',1.3);});
-  toast(good?`💸 Ажиотаж: ${hit.length} ${hit.length===1?'точка приносит':'точки приносят'} ×1,5 до конца дня`:`🌪 Хулиганы отвадили покупателей: ${hit.length} ${hit.length===1?'точка':'точки'} ×0,5 до конца дня`,3500);
-  log((good?'💸 Ажиотаж на ':'🌪 Погром на ')+hit.map(t=>t.type==='biz'?bizName(t):pointName(t)).join(', ')+(good?': ×1,5 до конца дня.':': ×0,5 до конца дня.'));
+  toast(good?`💸 Ажиотаж: ${hit.length} ${hit.length===1?'точка отработает':'точки отработают'} ×1,5 — один раз`:`🌪 Хулиганы отвадили покупателей: ${hit.length} ${hit.length===1?'точка отработает':'точки отработают'} ×0,5 — один раз`,3500);
+  log((good?'💸 Ажиотаж на ':'🌪 Погром на ')+hit.map(t=>t.type==='biz'?bizName(t):pointName(t)).join(', ')+(good?': ×1,5 на один сбор.':': ×0,5 на один сбор.'));
   track('boost',{good:!!good,tiles:hit.map(t=>t.i)});render();draw();await wait(600);return true;}
 async function scatter(){
   let spots=S.tiles.filter(t=>!unlocked(t)&&t.i!==S.pos);
