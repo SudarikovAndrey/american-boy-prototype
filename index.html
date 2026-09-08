@@ -804,7 +804,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='13.0', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='13.1', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 let TELEMETRY_URL='https://script.google.com/macros/s/AKfycbwWyE62gs3S_sF3NuT4iAktoNcXkq1uzjJIgO_pCfJjjjnvgN-2W3FOBHsZ2yqSzhCi/exec'; // приёмник партий вне артефакта: Apps Script → таблица «Америкэн бой — партии тестировщиков». Отключить в конкретном браузере: ?tm=
 // приёмник можно задать ссылкой ?tm=<url> — адрес запоминается в браузере, дальше все партии уходят сами
@@ -1042,7 +1042,7 @@ async function kioskWindow(t){
     const g=good(t.good), margin=Math.max(0,sellPrice(t.good)-buyPrice(t.good));
     if(!t.owner){
       hintHtml('kiosk','Точка зарабатывает продажами: её товар продаётся, когда ты проходишь старт. Купи её, потом закупись на Costco.');
-      shopFrame(t,`<div class="srow"><span class="ico">${g.icon}</span><span class="nm">${CAT_NAMES[t.base||'gum']||'Товар'}</span>${helpBtn('Товар точки продаётся при проходе старта. Купи точку и закупись на Costco.')}</div>
+      shopFrame(t,`<div class="srow"><span class="ico">${g.icon}</span><span class="nm">${g.name}</span>${helpBtn('Товар точки продаётся при проходе старта. Купи точку и закупись на Costco.')}</div>
         <div class="box"><span>Прибыль за круг<br><small style="color:#6b5f52">${salesBoost(CFG.KIOSK.sales[0][0])} шт × $${margin}</small></span><b>$${salesBoost(CFG.KIOSK.sales[0][0])*margin}</b></div>
         <div class="box"><span>Вместимость</span><b>${CFG.KIOSK.capacity[0][0]} шт</b></div>
         <button class="buy" id="kBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button>${S.cash<t.price?`<div class="need" data-need="${t.price-S.cash}">Не хватает $${t.price-S.cash} · <b>💵 за 💎 ${hardForCash(t.price-S.cash)}</b></div>`:''}`);
@@ -1055,7 +1055,7 @@ async function kioskWindow(t){
       const evoRow=(()=>{if(es==='max')return '';const nt=evolveTarget(t),nm=(CFG.POINT_NAMES[t.base||'gum']||[])[nt-1]||CFG.TIER_NAMES.kiosk[nt-1],ng=good(good(t.good).next||t.good);
         if(es==='ok')return `<div class="wide"><span class="n">Расширить до «${nm}»<small>${ng.icon} ${ng.name} · $${ng.sell}/шт</small></span><button id="kEvo" ${S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;
         if(cMax&&sMax)return `<div class="wide"><span class="n">Расширение до «${nm}»<small>откроется в день ${es.split(':')[1]}</small></span></div>`;return '';})();
-      shopFrame(t,`<div class="srow"><span class="ico">${g.icon}</span><span class="nm">${CAT_NAMES[t.base||'gum']||'Товар'}</span><span class="lvl">${klevel(t)}</span></div>
+      shopFrame(t,`<div class="srow"><span class="ico">${g.icon}</span><span class="nm">${g.name}</span><span class="lvl">${klevel(t)}</span></div>
         <div class="box"><span>Товар</span><span class="bar"><i style="width:${pc}%"></i></span><b>${t.goods}/${cap(t)}</b></div>
         <div class="box"><span>Прибыль за круг</span><b>$${sales(t)*margin}</b></div>
         <div class="two">
@@ -1073,7 +1073,7 @@ async function bizWindow(t){
   const draw=()=>{
     if(!t.owner){
       const f=Math.round(t.price*CFG.BIZ.feePct*perk().fee);
-      shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">Бизнес</span>${helpBtn('Сбор при каждом проходе, при остановке — втройне. Прокачка поднимает сбор.')}</div>
+      shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">${bizName(t)}</span>${helpBtn('Сбор при каждом проходе, при остановке — втройне. Прокачка поднимает сбор.')}</div>
         <div class="box"><span>За проход</span><b>$${f}</b></div>
         <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${f*CFG.BIZ.landMult}</b></div>
         <button class="buy" id="bBuy" ${S.cash<t.price?'disabled':''}>Купить · $${t.price}</button>${S.cash<t.price?`<div class="need" data-need="${t.price-S.cash}">Не хватает $${t.price-S.cash} · <b>💵 за 💎 ${hardForCash(t.price-S.cash)}</b></div>`:''}`);
@@ -1090,7 +1090,7 @@ async function bizWindow(t){
         :`<b>$${fee(t)} → $${newFee}</b><small class="pb">откроется в день ${String(es).split(':')[1]}</small>`;
       const evoCard=es==='max'?'':`<div class="up">${helpBtn(`Расширение до «${evoName}»: здание переходит в следующий класс, сбор считается от новой базы ($${fee(t)} → $${newFee}), уровень сохраняется. Открывается, когда сбор прокачан до максимума; следующий класс — по расписанию недели.`)}<div class="uic">🏙</div><div class="lab">${evoName}</div><div class="nums">${evoNums}</div>${evoBtn}</div>`;
       const evoLine=es==='max'?'Дальше расширять некуда — только сбор.':es==='ok'?`Сбор на максимуме — пора расширяться до «${evoName}»: сбор станет $${newFee} за проход.`:es==='stats'?`Слева качается сбор за проход (ур. ${t.level} из ${CFG.BIZ.maxLevel}). Справа — расширение до «${evoName}», откроется на максимальном уровне.`:`Расширение до «${evoName}» откроется в день ${String(es).split(':')[1]}.`;
-      shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">Бизнес</span><span class="lvl">${t.level}</span></div>
+      shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">${bizName(t)}</span><span class="lvl">${t.level}</span></div>
         <div class="box"><span>За проход</span><b>$${fee(t)}</b></div>
         <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${fee(t)*CFG.BIZ.landMult}</b></div>
         <div class="two">
