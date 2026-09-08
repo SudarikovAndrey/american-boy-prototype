@@ -229,6 +229,7 @@ input[type=number]{width:70px;background:#fff8e8;color:var(--ink);border:1px sol
 #sCash.neg{color:#ff6b6b}
 .row.hot .n b{color:#3f8f4c}
 .shop .need{font-size:calc(12px*var(--cs,1));color:#6b5f52;text-align:center;margin-top:calc(4px*var(--cs,1));cursor:pointer}.shop .need b{color:#2a6fb0}
+.shop .hintline{margin:0 calc(12px*var(--cs,1)) calc(10px*var(--cs,1));font-size:calc(12.5px*var(--cs,1));line-height:1.3;color:#6b5f52;text-align:center}
 .up .nums small.pb{display:block;font-family:'Suisse Intl',-apple-system,Segoe UI,Roboto,sans-serif;font-size:calc(12px*var(--cs,1));line-height:1.25;color:#6b5f52;font-weight:400;letter-spacing:0;white-space:normal;text-transform:none;margin-top:calc(4px*var(--cs,1))}
 .row.today .n{color:#ffd54f}.row.today .n small{color:#f4e2b0}.row.past .n{opacity:.55}
 </style>
@@ -315,14 +316,14 @@ const CFG = {
     {id:'sneak', name:'Кроссы',  buy:60,  sell:88,  pts:12, zone:2, icon:'👟', next:'jordan'},
     {id:'vcr',   name:'Видик',   buy:150, sell:215, pts:20, zone:2, icon:'📺', next:'cam'},
     // Магазин
-    {id:'marl',  name:'Marlboro',    buy:12,  sell:20,  pts:5,  tier:2, icon:'🚬', next:'whisky'},
+    {id:'marl',  name:'Marlboro',    buy:12,  sell:20,  pts:5,  tier:2, icon:'🚬', next:'cigar'},
     {id:'bud',   name:'Budweiser',   buy:8,   sell:14,  pts:4,  tier:2, icon:'🍺', next:'champ'},
     {id:'walk',  name:'Walkman',     buy:40,  sell:64,  pts:9,  tier:2, icon:'🎧', next:'disc'},
     {id:'levis', name:'Levi’s 501',  buy:60,  sell:95,  pts:11, tier:2, icon:'🧥', next:'jacket'},
     {id:'jordan',name:'Air Jordan',  buy:150, sell:225, pts:18, tier:2, icon:'🏀', next:'bmx'},
     {id:'cam',   name:'Видеокамера', buy:300, sell:430, pts:25, tier:2, icon:'📹', next:'comp'},
     // Супермаркет
-    {id:'whisky',name:'Jack Daniel’s', buy:40,  sell:64,  pts:10, tier:3, icon:'🥃'},
+    {id:'cigar', name:'Кубинские сигары', buy:40, sell:64, pts:10, tier:3, icon:'🇨🇺'}, // линия сладостей: конфеты → сигареты → сигары; ликёр из неё убран, крепкое остаётся в напитках
     {id:'champ', name:'Шампанское',    buy:45,  sell:72,  pts:11, tier:3, icon:'🍾'},
     {id:'disc',  name:'Discman',       buy:120, sell:180, pts:16, tier:3, icon:'💿'},
     {id:'jacket',name:'Косуха',        buy:180, sell:270, pts:20, tier:3, icon:'🧥'},
@@ -377,7 +378,7 @@ const CFG = {
   BIZ_NAMES:{3:'Прачечная',8:'Пиццерия Луиджи',17:'Тир на променаде',23:'Хот-доги Nathan’s',32:'Автосалон',37:'Ночной клуб'},
   BIZ_ICONS:{3:'🧺',8:'🍕',17:'🎯',23:'🌭',32:'🚗',37:'🪩'},
   // названия точек по категории (базовый товар) и тиру; товар — отдельный слот
-  POINT_NAMES:{gum:['Candy Stand','Smoke Shop','Liquor Store'],cola:['Soda Cart','Beer & Wine','Champagne Bar'],tape:['Music Stall','Sony Center','Hi-Fi Store'],jeans:['Jeans Rack','Levi’s Outlet','Leather & Denim'],sneak:['Sneaker Booth','Foot Locker','Bike & Sport'],vcr:['Video Rental','Camera Shop','Computer World']},              // такси как в коре: доехать до склада/дома без бросков
+  POINT_NAMES:{gum:['Candy Stand','Smoke Shop','Cigar Club'],cola:['Soda Cart','Beer & Wine','Champagne Bar'],tape:['Music Stall','Sony Center','Hi-Fi Store'],jeans:['Jeans Rack','Levi’s Outlet','Leather & Denim'],sneak:['Sneaker Booth','Foot Locker','Bike & Sport'],vcr:['Video Rental','Camera Shop','Computer World']},              // такси как в коре: доехать до склада/дома без бросков
   ZOOM:4.3,                    // ширина экрана в клетках (меньше = крупнее); колесо и щипок меняют в пределах ZOOM_MIN..ZOOM_MAX
   ZOOM_MIN:2.6, ZOOM_MAX:9,
   BANK_DAY:3, TREND_FROM_DAY:2, TREND_MULT:2, BLACK_FRIDAY_DAY:6, BF_MULT:1.5,
@@ -710,7 +711,7 @@ function goodTier(g){return g.tier||1;}
 function tierGoods(tier){return CFG.GOODS.filter(g=>goodTier(g)===tier);}
 function availableGoods(){return CFG.GOODS.filter(g=>goodTier(g)===1?S.opened[g.zone]:goodKiosks(g.id).length>0);}
 function bestGood(){const o=availableGoods().slice().sort((a,b)=>a.pts-b.pts);return o[o.length-1];}
-function taxiPrice(){return CFG.HARD.taxi*Math.pow(2,S.taxiRides||0);}
+function taxiPrice(){if(S.taxiDay!==S.day){S.taxiDay=S.day;S.taxiRides=0;} return CFG.HARD.taxi*Math.pow(2,S.taxiRides||0);} // каждый день цена снова 💎1: удвоение считается только за сегодня
 function lapNet(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+(t.type==='biz'?fee(t):sales(t)*Math.max(0,sellPrice(t.good)-buyPrice(t.good))),0);}
 function lapPotential(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+(t.type==='biz'?fee(t):sales(t)*Math.max(0,sellPrice(t.good)-buyPrice(t.good))),0);}
 // сумма кредита: под что игрок хочет вложиться, чего не может купить сейчас; потолок — залог (точки и бизнесы), который заберут при дефолте
@@ -737,6 +738,7 @@ function assetValue(t){if(t.type==='biz'){let v=t.price;for(let l=1;l<t.level;l+
   let v=t.price;for(let l=1;l<t.capLvl;l++)v+=Math.round(t.price*CFG.KIOSK.capUpMult*l);for(let l=1;l<t.salesLvl;l++)v+=Math.round(t.price*CFG.KIOSK.salesUpMult*l);for(let k=1;k<(t.tier||1);k++)v+=CFG.EVOLVE_COST[k];return v;}
 function seizePlan(principal){const mine=S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).sort((a,b)=>assetValue(b)-assetValue(a));const out=[];let v=0;for(const t of mine){if(v>=principal*CFG.SEIZE_RATIO&&out.length)break;out.push(t);v+=assetValue(t);}return out;}
 function loanInterest(){return (S.loans||[]).reduce((a,l)=>a+Math.round(l.principal*l.rate),0);}
+function slotPriceHard(){return CFG.HARD.slot*Math.pow(2,S.slotBuys||0);} // каждая купленная за ивент ячейка удваивает цену следующей — в полночь цена не откатывается
 function slotPrice(){return buyPrice(bestGood().id)*CFG.EXTRA_SLOT.priceMult*Math.pow(2,S.extraSlots||0);}
 function myKiosks(){return S.tiles.filter(t=>t.type==='kiosk'&&t.owner&&unlocked(t));}
 function stock(g){return myKiosks().filter(t=>t.good===g).reduce((s,t)=>s+t.goods,0);}
@@ -775,6 +777,7 @@ function evolve(t){
   if(t.type==='kiosk'&&t.goods>0){const m=t.goods*sellPrice(t.good);S.cash+=m;S.stat.earned+=m;log(`Распродажа остатков: +$${m}.`);t.goods=0;}
   const np=evolvedPrice(t); t.tier=nt; t.price=np;
   if(t.type==='kiosk'){t.good=good(t.good).next||t.good;t.capLvl=1;t.salesLvl=1;}
+
   log(`🎉 ${old} стал «${t.type==='kiosk'?pointName(t):name(t)}»${t.type==='kiosk'?`, в слоте ${good(t.good).icon} ${good(t.good).name}`:''}. Вместимость и продажи сохранены, открыты новые уровни.`);toast('Расширение!');
 }
 
@@ -801,7 +804,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='12.6', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='12.9', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 let TELEMETRY_URL='https://script.google.com/macros/s/AKfycbwWyE62gs3S_sF3NuT4iAktoNcXkq1uzjJIgO_pCfJjjjnvgN-2W3FOBHsZ2yqSzhCi/exec'; // приёмник партий вне артефакта: Apps Script → таблица «Америкэн бой — партии тестировщиков». Отключить в конкретном браузере: ?tm=
 // приёмник можно задать ссылкой ?tm=<url> — адрес запоминается в браузере, дальше все партии уходят сами
@@ -823,7 +826,7 @@ function summaryDoc(){const ks=myKiosks();return{runId:S.runId,player:S.player||
 function localFlush(final){ if(!S||!pending.length)return; const chunk=pending.splice(0,pending.length);
   try{const all=JSON.parse(localStorage.getItem(FULLK)||'{}'); if(all.runId!==S.runId){all.runId=S.runId;all.events=[];} all.events=(all.events||[]).concat(chunk); all.summary=summaryDoc(); localStorage.setItem(FULLK,JSON.stringify(all)); localStorage.setItem(LOGK,'[]');}catch(e){}
   if(TELEMETRY_URL)sendTm({summary:summaryDoc(),events:chunk}); }
-function sendTm(payload){ if(!TELEMETRY_URL)return;
+function sendTm(payload){ if(!TELEMETRY_URL||typeof fetch!=='function')return;
   let q=[]; try{q=JSON.parse(localStorage.getItem(TMQ)||'[]');}catch(e){}
   if(payload)q.push(payload); if(!q.length)return;
   const batch=q.splice(0,q.length);
@@ -1077,14 +1080,23 @@ async function bizWindow(t){
       $('bBuy').onclick=()=>{track('buy_biz',{tile:t.i,price:t.price});fly('💵',AT.cash(),AT.tile(t.i),flyN(t.price));S.cash-=t.price;t.owner='you';t.level=1;S.stat.bought++;S.dstat.bought++;qProg('buy',1);log(`Купил ${name(t)} за $${t.price}.`);toast('Твой бизнес!');render();draw();};
     } else {
       const max=t.level>=CFG.BIZ.maxLevel, lockDay=bizLevelLocked(t), cost=bizUpCost(t), es=evolveState(t), nt=evolveTarget(t);
-      const evoCard=es==='max'?'':`<div class="up">${helpBtn('Расширение: здание дорожает в 5 раз, сбор — тоже, уровень сохраняется. Сначала нужен максимальный уровень. Цена = прибавка сбора × окупаемость в кругах (12 в начале недели, к концу короче).')}<div class="uic">🏙</div><div class="lab">${CFG.TIER_NAMES.biz[nt-1]}</div><div class="nums">${es==='ok'?`<b>×${Math.round(evolvedPrice(t)/t.price)} сбор</b><small class="pb">окупится за ${paybackLaps()} кругов ≈ ${Math.max(1,Math.round(paybackLaps()/CFG.LAPS_PER_DAY_EST*10)/10)} дня</small>`:es==='stats'?`<b>ур. ${t.level}/${CFG.BIZ.maxLevel}</b><small class="pb">сначала прокачай сбор до максимума</small>`:'с дня '+es.split(':')[1]}</div><button id="bEvo" ${es!=='ok'||S.cash<evolveCost(t)?'disabled':''}>$${evolveCost(t)}</button></div>`;
+      const evoName=CFG.TIER_NAMES.biz[nt-1]||'Сеть', evoCost=evolveCost(t), newFee=Math.max(1,Math.round(evolvedPrice(t)*CFG.BIZ.feePct*perk().fee));
+      const evoBtn=es==='ok'?`<button id="bEvo" ${S.cash<evoCost?'disabled':''}>${S.cash<evoCost?'мало $':'$'+evoCost}</button>`
+        :es==='stats'?`<button disabled>ур. ${CFG.BIZ.maxLevel}/${CFG.BIZ.maxLevel}</button>`
+        :`<button disabled>с дня ${String(es).split(':')[1]}</button>`;
+      const evoNums=es==='ok'?`<b>$${fee(t)} → $${newFee}</b><small class="pb">сбор от новой базы · окупится за ${paybackLaps()} кругов</small>`
+        :es==='stats'?`<b>ур. ${t.level}/${CFG.BIZ.maxLevel}</b><small class="pb">сначала прокачай сбор до максимума</small>`
+        :`<b>$${fee(t)} → $${newFee}</b><small class="pb">откроется в день ${String(es).split(':')[1]}</small>`;
+      const evoCard=es==='max'?'':`<div class="up">${helpBtn(`Расширение до «${evoName}»: здание переходит в следующий класс, сбор считается от новой базы ($${fee(t)} → $${newFee}), уровень сохраняется. Открывается, когда сбор прокачан до максимума; следующий класс — по расписанию недели.`)}<div class="uic">🏙</div><div class="lab">${evoName}</div><div class="nums">${evoNums}</div>${evoBtn}</div>`;
+      const evoLine=es==='max'?'Дальше расширять некуда — только сбор.':es==='ok'?`Сбор на максимуме — пора расширяться до «${evoName}»: сбор станет $${newFee} за проход.`:es==='stats'?`Слева качается сбор за проход (ур. ${t.level} из ${CFG.BIZ.maxLevel}). Справа — расширение до «${evoName}», откроется на максимальном уровне.`:`Расширение до «${evoName}» откроется в день ${String(es).split(':')[1]}.`;
       shopFrame(t,`<div class="srow"><span class="ico">${bizIcon(t)}</span><span class="nm">Бизнес</span><span class="lvl">${t.level}</span></div>
         <div class="box"><span>За проход</span><b>$${fee(t)}</b></div>
         <div class="box"><span>За остановку <small style="color:#6b5f52">×${CFG.BIZ.landMult}</small></span><b>$${fee(t)*CFG.BIZ.landMult}</b></div>
         <div class="two">
           <div class="up">${helpBtn('Уровень поднимает сбор в 1,6 раза. Сбор капает каждый раз, когда проходишь мимо клетки, а не только при остановке: за день это '+CFG.LAPS_PER_DAY_EST+' и больше кругов. Цена = прибавка сбора × '+paybackLaps()+' кругов; к концу недели окупаемость короче и прокачка дешевле.')}<div class="uic">⇧</div><div class="lab">Сбор за проход</div><div class="nums">$${fee(t)}${max?'':` <i>→</i> <b>$${Math.round(fee(t)*CFG.BIZ.feeLevelMult)}</b>`}${max||lockDay?'':`<small class="pb">окупится за ${paybackLaps()} кругов ≈ ${Math.max(1,Math.round(paybackLaps()/CFG.LAPS_PER_DAY_EST*10)/10)} дня</small>`}</div><button id="bUp" ${max||lockDay||S.cash<cost?'disabled':''}>${max?'Макс':lockDay?'с дня '+lockDay:'$'+cost}</button></div>
           ${evoCard}
-        </div>`);
+        </div>
+        <div class="hintline">${evoLine}</div>`);
       $('bUp').onclick=()=>{track('upgrade',{tile:t.i,stat:'biz',lvl:t.level+1,cost});fly('💵',AT.cash(),AT.tile(t.i),flyN(cost));S.cash-=cost;t.level++;qProg('upg',1);log(`Прокачал ${name(t)} до ур. ${t.level}.`);render();draw();};
       const evo=$('bEvo'); if(evo)evo.onclick=()=>{fly('💵',AT.cash(),AT.tile(t.i),8);evolve(t);render();draw();};
     }
@@ -1290,7 +1302,7 @@ async function parcel(forced,catchUp){
     const N=slots(),n=used(),p=pts(),share=Math.round(p/R*100);
     let sl='';CFG.GOODS.forEach(g=>{for(let i=0;i<box[g.id];i++)sl+=`<div class="slot f">${g.icon}<small>×${k}</small></div>`;});
     for(let i=n;i<N;i++)sl+=`<div class="slot"><small>×${k}</small></div>`;
-    const canSlot=S.extraSlots<CFG.EXTRA_SLOT.perDay, hp=CFG.HARD.slot*Math.pow(2,S.extraSlots||0);
+    const canSlot=S.extraSlots<CFG.EXTRA_SLOT.perDay, hp=slotPriceHard(); // место действует до полуночи, а цена растёт за всю неделю
     const gs=CFG.GOODS.filter(g=>stock(g.id)>0||box[g.id]>0);
     $('card').innerHTML=`<h2>📦 ${catchUp?'Догоняющая поставка':'Поставка в Союз'} <small>${catchUp?'за пропущенный день · '+R+' очков максимум':forced?'фура уходит':'1 в день'} · ${N} мест по ${k} шт</small>${helpBtn(`Одна поставка в день. Место в фуре вмещает ${k} шт одного товара, с каждым днём больше. Очки — доля от лучшей возможной поставки дня (${CFG.PARCEL_SLOTS} мест лучшего товара = ${R} очков); лишние места дают сверх того. Не отправишь сам — в полночь фура заберёт самое дорогое. Остатки за неделю сгорают.`)}</h2>
       ${hintHtml('parcel','Поставка — кнопка 📦 в доке, одна в день, из товара твоих точек. Что отправишь, то уже не продашь. Дорогой товар даёт больше очков за место. Очки — это билет Джонни.')}
@@ -1300,11 +1312,11 @@ async function parcel(forced,catchUp){
       <div class="bar"><i style="width:${Math.min(100,share)}%"></i></div>`+
       gs.map(g=>{const can=Math.floor(stock(g.id)/k);return `<div class="row"><span class="n">${g.icon} ${g.name} <small>${g.pts} очк./шт · в точках ${stock(g.id)} · хватит на ${can} ${can===1?'место':'мест'}</small></span>
         <div class="qty"><button data-g="${g.id}" data-d="-1" ${box[g.id]<=0?'disabled':''}>−</button><b>${box[g.id]}</b><button data-g="${g.id}" data-d="1" ${n>=N||box[g.id]>=can?'disabled':''}>+</button></div></div>`;}).join('')+
-      `${canSlot?(()=>{const rest=CFG.GOODS.filter(g=>Math.floor(stock(g.id)/k)-box[g.id]>0).sort((a,b)=>b.pts-a.pts)[0],gain=rest?Math.round(k*rest.pts/(CFG.PARCEL_SLOTS*bestPtsToday())*R):0,full=n>=N&&!!rest;return `<div class="row ${full?'hot':''}"><span class="n">Ещё одно место в контейнере${gain?` <b>+${gain} очк.</b>`:''}<small>${full?'фура полна, а '+rest.icon+' '+rest.name+' остаётся · ':''}только на сегодня · каждое следующее вдвое дороже · осталось ${CFG.EXTRA_SLOT.perDay-S.extraSlots}</small></span><span class="qty"><button class="sm hard ${full?'blink':''}" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`;})():''}
+      `${canSlot?(()=>{const rest=CFG.GOODS.filter(g=>Math.floor(stock(g.id)/k)-box[g.id]>0).sort((a,b)=>b.pts-a.pts)[0],gain=rest?Math.round(k*rest.pts/(CFG.PARCEL_SLOTS*bestPtsToday())*R):0,full=n>=N&&!!rest;return `<div class="row ${full?'hot':''}"><span class="n">Ещё одно место в контейнере${gain?` <b>+${gain} очк.</b>`:''}<small>${full?'фура полна, а '+rest.icon+' '+rest.name+' остаётся · ':''}место работает до полуночи, а цена растёт на всю неделю · осталось сегодня ${CFG.EXTRA_SLOT.perDay-S.extraSlots}</small></span><span class="qty"><button class="sm hard ${full?'blink':''}" id="mSlotH" ${S.hard<hp?'disabled':''}>💎 ${hp}</button></span></div>`;})():''}
       <div class="mbtns"><button class="sec sm" id="mAuto">Самое дорогое</button><button class="ok" id="mSend" ${n<=0?'disabled':''}>Отправить · ${p} очк.</button><button class="sec" id="mNo">${forced?'Не отправлять':'Позже'}</button></div>`;
     $('card').querySelectorAll('.qty button').forEach(b=>b.onclick=()=>{const g=b.dataset.g;box[g]=Math.max(0,box[g]+ +b.dataset.d);draw();});
     $('mAuto').onclick=()=>{autofill();draw();};
-    const mh=$('mSlotH'); if(mh)mh.onclick=()=>{if(spendHard(hp)){track('slot_buy',{cost:hp,cur:'hard'});S.extraSlots++;log(`Докупил место в контейнере за 💎 ${hp}.`);draw();render();}};
+    const mh=$('mSlotH'); if(mh)mh.onclick=()=>{if(spendHard(hp)){track('slot_buy',{cost:hp,cur:'hard',buys:(S.slotBuys||0)+1});S.extraSlots++;S.slotBuys=(S.slotBuys||0)+1;log(`Докупил место в контейнере за 💎 ${hp}.`);draw();render();}};
     $('mSend').onclick=()=>{const L0=level(),pBefore=S.pts,units=n*k;CFG.GOODS.forEach(g=>{if(box[g.id])fly(g.icon,AT.card(),AT.hub(),Math.min(box[g.id],4),{pulse:'bHub'});});CFG.GOODS.forEach(g=>takeGoods(g.id,box[g.id]*k));S.pts+=p;S.xp+=p;if(catchUp){S.catchups=(S.catchups||0)+1;}else S.parcelSent=true;S.stat.parcels++;S.dstat.pts+=p;qProg('parcel',p,true);
       track('parcel',{units,slotsUsed:n,pts:p,max:R,slots:N,k,extra:S.extraSlots,forced:!!forced,catchUp:!!catchUp,box});log(`📦 Поставка ушла: ${units} шт, +${p} очков.`);closeModal(1);if(!catchUp&&p<R*0.6&&S.day<=3)setTimeout(()=>hint('fillTruck',`Фура ушла на ${Math.round(p/R*100)}%. Очки — это доля заполнения лучшим товаром: закупайся на Costco до отправки, а не после.`),1200);if(S.day>=CFG.DAYS)setTimeout(()=>toast('🏁 Последняя поставка недели ушла. Остатки товара, нал и точки пойдут в зачёт — жми «итоги» в доке.',6000),900);
       const L=level();
@@ -1409,7 +1421,7 @@ async function sleep(auto){
   loanMidnight(); if(S.seized)await seizeModal();
   track('day_end',{d,dayMs:(S.dayMs||{})[S.day]||0,points:myKiosks().length,opened:S.opened.filter(Boolean).length,q:S.q.map(q=>({id:q.id,done:q.done,claimed:q.claimed}))});
   S.dstat={earned:0,sold:0,pts:0,bought:0};(S.ptsHist=S.ptsHist||[]).push(S.pts);if(S.day===2)setTimeout(()=>hint('twoSessions','Ходы восстанавливаются за несколько часов. Второй заход вечером почти удваивает очки за день — самые сильные игроки заходят дважды.'),800);
-  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY+(S.carryRolls||0);S.carryRolls=0;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.jail=0;S.extraSlots=0;S.extraSlotsSoft=0;S.loanGrace=CFG.LOAN_GRACE;newQuest();
+  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY+(S.carryRolls||0);S.carryRolls=0;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.taxiDay=S.day;S.jail=0;S.extraSlots=0;S.extraSlotsSoft=0;S.loanGrace=CFG.LOAN_GRACE;newQuest();
   if(S.day>CFG.DAYS)return finish();
   const msgs=[`☀️ День ${S.day}.`];
   CFG.ZONES.forEach((z,zi)=>{if(z.day<=S.day&&!S.opened[zi])msgs.push(openZone(zi,0));});
