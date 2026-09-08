@@ -45,6 +45,10 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .blink{animation:blink 1.1s ease-in-out infinite}
 @keyframes blink{0%,100%{transform:scale(1);box-shadow:0 2px 0 #0004}50%{transform:scale(1.06);box-shadow:0 2px 0 #0004,0 0 14px var(--gold)}}
 .ava.ready{box-shadow:0 0 0 3px var(--gold)}
+#panel .dk.hot{background:var(--green);box-shadow:0 3px 0 #2d6b38;animation:shipPulse 1.6s ease-in-out infinite}
+#panel .dk.hot small{color:#eaffe8}
+@keyframes shipPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){#panel .dk.hot{animation:none}}
 .dot{position:absolute;top:4px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid var(--panel)}
 .dk{position:relative}
 .chip.warn{background:#4a4238;color:var(--cream)}
@@ -103,12 +107,14 @@ button.hard{background:#3e5a8a;box-shadow:0 3px 0 #2c4470}
 .finlb{margin-top:8px}.finlost{border:0;opacity:.8}.finlost .v{color:#6b5f52}
 #card .tabs{display:flex;gap:6px;margin:6px 0 10px}#card .tabs button{flex:1;background:#0001;color:var(--ink);border-radius:10px;padding:7px 4px;font-size:13px;font-weight:700;position:relative}#card .tabs button.on{background:var(--ink);color:var(--cream)}#card .tabs .dot{position:absolute;top:4px;right:6px}
 #tilebar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:var(--cream);color:var(--ink);box-shadow:0 3px 0 #0005;padding:9px 12px;font-size:14px;font-weight:700;text-align:left;margin-bottom:6px}
-#tilebar b{color:var(--red)}
+#tilebar b{background:var(--green);color:#fff;border-radius:9px;padding:5px 12px;font-size:13px;box-shadow:0 2px 0 #2d6b38;white-space:nowrap}
+#tilebar.off b{background:#a29a90;box-shadow:0 2px 0 #837c73}
 #tilebar[hidden]{display:none}
 #tilebar.pulse{animation:tbPulse .6s ease-in-out 4}@keyframes tbPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px);box-shadow:0 7px 0 #0005}}
 button{border:0;border-radius:12px;cursor:pointer;font-weight:700;touch-action:manipulation;font-size:15px;padding:10px 14px;background:var(--red);color:#fff;box-shadow:0 3px 0 var(--red2)}
 button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--red2)}
-button:disabled{opacity:.45;cursor:default}
+button:disabled{background:#a29a90;box-shadow:0 3px 0 #837c73;color:#f2eee8;opacity:1;cursor:default}
+button:disabled small{color:#f2eee8;opacity:.8}
 button.sec{background:#8a7e6e;box-shadow:0 3px 0 #5f554a}
 button.ok{background:var(--green);box-shadow:0 3px 0 #2d6b38}
 button.bad{background:var(--red)}
@@ -795,7 +801,7 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='12.4', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='12.5', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
 let TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (веб-приложение Google Apps Script и т.п.)
 // приёмник можно задать ссылкой ?tm=<url> — адрес запоминается в браузере, дальше все партии уходят сами
@@ -1127,13 +1133,15 @@ async function shop(){
 // ---------- улица: закрытый район до открытия ----------
 async function street(t){
   const z=CFG.ZONES[t.zone], sc=S.day, ks=myKiosks(), bz=S.tiles.filter(x=>x.type==='biz'&&x.owner&&unlocked(x)), ev=[];
+  const evW={}; const pushW=(w,f)=>{ev.push(f);evW[ev.length-1]=w;}; // вес события по индексу: редкие и жирные — с малым весом
+  const capMoney=(m)=>Math.max(1,Math.min(m,Math.round(Math.max(40*sc,lapNet()*0.4)))); // ни одно уличное событие не перебивает круг
   ev.push(()=>{const m=6*sc+Math.floor(Math.random()*9*sc);S.cash+=m;return `🧱 Подработал на стройке грузчиком: +$${m}.`;});
   ev.push(()=>{const m=4*sc+Math.floor(Math.random()*7*sc);S.cash+=m;return `🪙 Нашёл на тротуаре $${m}. Америка сорит деньгами.`;});
   ev.push(()=>{const m=pay(3*sc+Math.floor(Math.random()*6*sc));return `🥾 Наступил в жвачку, порвал кроссовок: −$${m}.`;});
   ev.push(()=>{S.rolls+=1;return `🚌 Подвёз знакомый на пикапе: +1 ход.`;});
   const room=ks.filter(k=>k.goods<cap(k));
   if(room.length)ev.push(()=>{const k=room[Math.floor(Math.random()*room.length)],n=Math.min(2,cap(k)-k.goods);k.goods+=n;float(k.i,'+'+n+' шт','#8bc34a',1.2);return `🎁 Прораб отдал коробку: +${n} шт ${good(k.good).name.toLowerCase()} в твою точку.`;});
-  if(bz.length)ev.push(()=>{const b=bz[Math.floor(Math.random()*bz.length)],m=fee(b)*2;S.cash+=m;S.stat.earned+=m;return `🚧 Строители пошли обедать в ${bizName(b)}: +$${m} (двойной сбор).`;}); // v12.3: был двойной сбор со всех бизнесов сразу — на поздних днях это перебивало весь доход круга
+  if(bz.length)pushW(0.4,()=>{const b=bz[Math.floor(Math.random()*bz.length)],m=capMoney(fee(b)*2);S.cash+=m;S.stat.earned+=m;return `🚧 Строители пошли обедать в ${bizName(b)}: +$${m} (двойной сбор).`;}); // v12.5: вес 0,4 и потолок — событие выпадало слишком часто и перебивало доход круга
   else ev.push(()=>`🏢 Строители ищут, где пообедать. Был бы у тебя бизнес — оставили бы деньги.`);
   if(S.day>=CFG.TREND_FROM_DAY){const open=availableGoods();ev.push(()=>{const g=open[Math.floor(Math.random()*open.length)];S.trend=g.id;return `📺 По MTV показали ${g.name.toLowerCase()} — все хотят! Сегодня ${g.icon} продаётся ×${CFG.TREND_MULT}.`;});}
   const have=ks.filter(k=>k.goods>0);
@@ -1147,8 +1155,18 @@ async function street(t){
     const what=k.one?`весь твой товар «${good(goods[0]).name}»`:k.share>=1?'весь товар с твоих точек':`${Math.round(k.share*100)}% товара с твоих точек`;
     return `🤵 ${k.who} скупил ${what}: ${units} шт за $${total}, на ${Math.round((k.mult-1)*100)}% дороже обычного.`;});
   if(ks.length)ev.push(()=>{const k=ks[Math.floor(Math.random()*ks.length)];if(k.capLvl<capTab(k).length){const was=cap(k);k.capLvl++;float(k.i,'📦 '+was+'→'+cap(k),'#8bc34a',1.2);return `🇺🇸 Грант малому бизнесу: твоей точке «${good(k.good).name}» бесплатно подняли вместимость ${was} → ${cap(k)} шт.`;}S.cash+=50*sc;return `🇺🇸 Грант малому бизнесу: +$${50*sc} наличными.`;});
+  pushW(1,()=>{const m=capMoney(5*sc+Math.floor(Math.random()*8*sc));S.cash+=m;return `🗽 Турист заблудился, показал дорогу до метро: +$${m} на чай.`;});
+  pushW(1,()=>{const m=capMoney(4*sc+Math.floor(Math.random()*6*sc));S.cash+=m;return `🛒 Помог бабушке донести сумки до дома: +$${m} и пирожок в дорогу.`;});
+  pushW(1,()=>{const m=capMoney(6*sc+Math.floor(Math.random()*10*sc));S.cash+=m;return `🎺 Подыграл уличному саксофонисту на ведре: +$${m} с прохожих.`;});
+  pushW(0.8,()=>{const m=pay(4*sc+Math.floor(Math.random()*8*sc));return `🚙 Забыл про парковку, эвакуатор уже цеплял: −$${m} на месте.`;});
+  pushW(0.8,()=>{const m=pay(3*sc+Math.floor(Math.random()*5*sc));return `🕶 Местные предложили «крышу» за скромные $${m}. Отказываться не стал.`;});
+  pushW(0.7,()=>{S.rolls+=1;return `🍕 Угостили куском пиццы у стройки: +1 ход, сытым ходится лучше.`;});
+  pushW(0.7,()=>{const m=capMoney(8*sc+Math.floor(Math.random()*12*sc));S.cash+=m;return `💼 Вернул потерянный кошелёк владельцу — тот отблагодарил: +$${m}.`;});
+  if(ks.length)pushW(0.6,()=>{const k=ks[Math.floor(Math.random()*ks.length)],n=Math.min(3,k.goods);if(n<=0){const m=capMoney(3*sc);S.cash+=m;return `🐀 Крысы на складе ничего не нашли — пусто. Зато сдал банки: +$${m}.`;}k.goods-=n;float(k.i,'−'+n+' шт','#ef5350',1.2);return `🐀 Крысы прогрызли коробку в ${pointName(k)}: −${n} шт.`;});
+  pushW(0.5,()=>{if(Math.random()<0.5){const m=capMoney(12*sc+Math.floor(Math.random()*15*sc));S.cash+=m;return `🃏 Три карты на углу — сегодня повезло: +$${m}.`;}const m=pay(6*sc+Math.floor(Math.random()*10*sc));return `🃏 Три карты на углу. Угадать не вышло: −$${m}.`;});
+  pushW(0.5,()=>{S.hard+=1;return `💎 В трещине асфальта блеснул кристалл: +💎 1.`;});
   const c0=S.cash, r0=S.rolls;
-  const f=ev[Math.floor(Math.random()*ev.length)]();log(f);
+  const f=(()=>{const w=ev.map((_,i)=>evW[i]!==undefined?evW[i]:1),tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(let i=0;i<ev.length;i++){r-=w[i];if(r<=0)return ev[i]();}return ev[ev.length-1]();})();log(f);
   const dc=S.cash-c0, dr=S.rolls-r0; track('street',{tile:t.i,dc,dr,text:f.slice(0,40)});
   if(dc>0)fly('💵',AT.tile(t.i),AT.cash(),flyN(dc),{pulse:'sCash'}); if(dr>0)fly('🎲',AT.tile(t.i),AT.dice(),1);
   float(t.i, dc>0?'+$'+dc:dc<0?'−$'+(-dc):dr>0?'+'+dr+' ход':f.slice(0,2), dc<0?'#ef5350':'#8bc34a', 1.3);
@@ -1196,7 +1214,7 @@ async function boostRain(good){
   log((good?'💸 Ажиотаж на ':'🌪 Погром на ')+hit.map(t=>t.type==='biz'?bizName(t):pointName(t)).join(', ')+(good?': ×1,5 до конца дня.':': ×0,5 до конца дня.'));
   track('boost',{good:!!good,tiles:hit.map(t=>t.i)});render();draw();await wait(600);return true;}
 async function scatter(){
-  let spots=S.tiles.filter(t=>!unlocked(t)&&!t.drop&&t.i!==S.pos);
+  let spots=S.tiles.filter(t=>!unlocked(t)&&t.i!==S.pos);
   if(!spots.length&&await boostRain(true))return;
   if(spots.length<4)spots=S.tiles.filter(t=>t.i!==0&&t.i!==S.pos&&!t.drop&&(t.type==='kiosk'||t.type==='biz')&&!t.owner);
   spots.sort(()=>Math.random()-0.5);
@@ -1212,14 +1230,14 @@ async function flyDrops(plan){
   // купюры вылетают из клетки инкассатора дугой и ложатся на клетки; drop появляется по приземлению
   const[g1,g2]=gridOf(S.pos),[x0,y0]=iso(g1,g2),now=performance.now();
   plan.forEach((pl,idx)=>{const[a,b]=gridOf(pl.t.i),[x1,y1]=iso(a,b);
-    flyers.push({x0,y0:y0-TH,x1,y1:y1-TH*0.3,icon:pl.icon,t0:now+idx*90/CFG.SPEED,ms:750/CFG.SPEED,p:0,onDone:()=>{pl.t.drop=pl.drop;if(!(pl.drop.cash>0))float(pl.t.i,pl.drop.rolls?'🎲':pl.drop.hard?'💎':'⚠️','#ef5350');kick();}});});
+    flyers.push({x0,y0:y0-TH,x1,y1:y1-TH*0.3,icon:pl.icon,t0:now+idx*90/CFG.SPEED,ms:750/CFG.SPEED,p:0,onDone:()=>{pl.t.drop=mergeDrop(pl.t.drop,pl.drop);if(!(pl.drop.cash>0))float(pl.t.i,pl.drop.rolls?'🎲':pl.drop.hard?'💎':'⚠️','#ef5350');kick();}});});
   kick();
   await wait(750+plan.length*90+200);
   for(const f of flyers){if(!f.done){f.done=true;f.onDone&&f.onDone();}} flyers=[]; // страховка, если кадры не тикали
 }
 // ---------- хулиганы: раскидывают неприятности по стройке ----------
 async function hazard(){
-  let spots=S.tiles.filter(t=>!unlocked(t)&&!t.drop&&t.i!==S.pos);
+  let spots=S.tiles.filter(t=>!unlocked(t)&&t.i!==S.pos);
   if(!spots.length&&await boostRain(false))return;
   if(spots.length<3)spots=S.tiles.filter(t=>t.i!==0&&t.i!==S.pos&&!t.drop&&(t.type==='kiosk'||t.type==='biz')&&!t.owner);
   spots.sort(()=>Math.random()-0.5);
@@ -1459,23 +1477,20 @@ async function dayCard(){
 function settings(){
   $('card').innerHTML=`<h2>⚙ Тест-стенд</h2>
     <div class="row"><span class="n">Закончить день<small>неделя проходится за один сеанс — то же по тапу на 📅 в шапке</small></span><div class="qty"><button id="cDay2">Закончить</button></div></div>
-    <div class="row"><span class="n">⚠️ Отладка: время ×</span><div class="qty"><button data-ts="1">×1</button><button data-ts="60">×60</button><button data-ts="600">×600</button></div></div>
-    <div class="row"><span class="n">Скорость</span><div class="qty"><button data-s="1">×1</button><button data-s="3">×3</button><button data-s="8">×8</button></div></div>
     <div class="row"><span class="n">Ходов в день (с новой игры)</span><input type="number" id="iRolls" value="${CFG.ROLLS_PER_DAY}"></div>
     <div class="row"><span class="n">Старт $ (с новой игры)</span><input type="number" id="iCash" value="${CFG.START_CASH}"></div>
     <div class="row"><span class="n">Мест в контейнере</span><input type="number" id="iSlots" value="${CFG.PARCEL_SLOTS}"></div>
     <div class="row"><span class="n">Новая игра с дня<small>опоздавший: стартовый пакет и догоняющая фура</small></span><input type="number" id="iStart" value="1" min="1" max="${CFG.DAYS}"></div>
-    <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cRolls">+10 ходов</button><button class="sec" id="cHard">+💎 50</button></div>
+    <div class="row"><span class="n">Подождать 10 часов<small>ходы восстанавливаются по одному за ${CFG.REGEN_MIN} мин — как будто сходил по делам и вернулся</small></span><div class="qty"><button id="cWait">Подождать</button></div></div>
+    <div class="mbtns"><button class="sec" id="cCash">+$500</button><button class="sec" id="cHard">+💎 50</button></div>
     <div class="row"><span class="n">📤 Лог партии для разбора<small>${S.player||'без имени'} · ${(window.claude&&claude.use)?'уходит в базу сам':TELEMETRY_URL?'уходит на сервер сам':'поделись файлом или вставь из буфера'}</small></span><div class="qty"><button id="cExport">Экспорт</button></div></div>
     <div class="mbtns"><button class="bad" id="cReset">Новая игра</button><button id="cClose">Закрыть</button></div>
     <p style="font-size:12px">Прототип «Америкэн бой» v${VERSION} · баланс ${cfgHash()}. Баланс — объект CFG в начале скрипта. Сохраняется в браузере.</p>`;
   $('modal').hidden=false;
-  $('card').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{CFG.SPEED=+b.dataset.s;toast('Скорость ×'+CFG.SPEED);});
-  $('card').querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{CFG.TIME_SCALE=+b.dataset.ts;toast('Время ×'+CFG.TIME_SCALE);});
   $('cDay2').onclick=()=>{track('debug',{what:'day'});closeModal();sleep();};
   const apply=()=>{CFG.ROLLS_PER_DAY=+$('iRolls').value||30;CFG.START_CASH=+$('iCash').value||250;CFG.PARCEL_SLOTS=+$('iSlots').value||6;};
   $('cCash').onclick=()=>{S.cash+=500;track('debug',{what:'cash',n:500});render();toast('+$500');};
-  $('cRolls').onclick=()=>{S.rolls+=10;track('debug',{what:'rolls',n:10});render();toast('+10 ходов');};
+  $('cWait').onclick=()=>{const was=S.rolls;S.lastTick=(S.lastTick||Date.now())-10*3600*1000;regenTick();const got=S.rolls-was;track('wait',{hours:10,got});log(`Подождал 10 часов: +${got} ходов.`);render();toast(got>0?`⏳ Прошло 10 часов: +${got} ходов`:'⏳ Ходы уже на максимуме');};
   $('cHard').onclick=()=>{S.hard+=50;track('debug',{what:'hard',n:50});render();toast('+💎 50');};
   $('cExport').onclick=()=>exportRun();
 
@@ -1501,7 +1516,17 @@ function fit(){
 function float(i,text,color,size){const[gx,gy]=gridOf(i),[x,y]=iso(gx,gy);floats.push({x,y:y-10,text,color,t:0,size:size||1});kick();}
 const LOCK_COL='#4a453d', FREE_COL='#d6ccb0';
 // сумма дропа → стопка монет 1..4 (относительно разброса инкассатора за день)
-function coinTier(cash){const c=CFG.SCATTER,lo=c.min*S.day,hi=c.max*S.day;const q=hi>lo?(cash-lo)/(hi-lo):1;return Math.max(1,Math.min(4,1+Math.floor(q*4)));}
+// повторная находка на той же клетке складывается, а не заменяется
+function mergeDrop(a,b){ if(!a)return b; const o=Object.assign({},a);
+  for(const k of ['cash','rolls','hard','goods','hour'])if(b[k])o[k]=(o[k]||0)+b[k];
+  return o;}
+function coinTier(cash){const c=CFG.SCATTER,lo=c.min*S.day,hi=c.max*S.day*2.5;const q=hi>lo?(cash-lo)/(hi-lo):1;return Math.max(1,Math.min(5,1+Math.floor(q*5)));} // 5 градаций: чем больше денег, тем выше стопка
+function tierOf(n,steps){let t=1;steps.forEach((v,i)=>{if(n>=v)t=i+1;});return Math.min(5,t);}
+function rollsTier(n){return tierOf(n,[1,3,5,8,12]);}
+function hardTier(n){return tierOf(n,[1,2,3,5,8]);}
+// стопка одинаковых иконок: чем больше нашлось, тем выше кучка
+function drawStack(px,py,tier,icon,sz){const step=sz*0.34;
+  for(let k=0;k<tier;k++){cx.font=`${Math.round(sz)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(icon,px+(k%2?sz*0.08:-sz*0.06),py-k*step);}}
 function drawCoins(px,py,tier){const rx=TW*(0.085+0.012*tier),ry=rx*0.5,step=rx*0.42,n=tier;
   for(let k=0;k<n;k++){const yy=py-k*step;cx.beginPath();cx.ellipse(px,yy,rx,ry,0,0,Math.PI*2);cx.fillStyle=k===n-1?'#ffd54f':'#e2a72e';cx.fill();cx.lineWidth=Math.max(1,TW*0.012);cx.strokeStyle='#7a5a12';cx.stroke();}
   // ребро верхней монеты и блик
@@ -1565,8 +1590,9 @@ function draw(){
     cx.globalAlpha=1;
     if(t.drop){const d=t.drop;
       if(d.cash>0){drawCoins(x+TW*0.18,y-TH*0.05,coinTier(d.cash));}
-      else{const dic=d.rolls?'🎲':d.hard?'💎':'⚠️';cx.font=`${Math.round(TW*0.3)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(dic,x+TW*0.2,y-TH*0.3);
-        if(d.rolls)outlined(x+TW*0.2,y-TH*0.02,'+'+d.rolls,'#f2b632',TW*0.15);}}
+      else if(d.rolls)drawStack(x+TW*0.2,y-TH*0.22,rollsTier(d.rolls),'🎲',TW*0.26);
+      else if(d.hard)drawStack(x+TW*0.2,y-TH*0.22,hardTier(d.hard),'💎',TW*0.26);
+      else{cx.font=`${Math.round(TW*0.3)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('⚠️',x+TW*0.2,y-TH*0.3);}}
     if(lock)continue;
     if(mine){
       // остаток товара — кольцо вокруг иконки; пусто — красное и клетка пульсирует
@@ -1600,7 +1626,7 @@ function draw(){
 }
 function render(){
   $('sDay').textContent=`${S.day}/${CFG.DAYS}`;$('tJ').textContent='ур. '+level();$('sRolls').textContent=S.rolls+'/'+CFG.ROLLS_PER_DAY;$('sCash').textContent=S.cash;$('sCash').classList.toggle('neg',S.cash<0);$('sHard').textContent=S.hard;
-  const taxiOn=true, shopOn=S.stat.parcels>0||S.day>1||S.rolls<=0, canShip=(!S.parcelSent||parcelsBehind()>0)&&myKiosks().reduce((a,t)=>a+t.goods,0)>0;
+  const taxiOn=true, shopOn=true, canShip=(!S.parcelSent||parcelsBehind()>0)&&myKiosks().reduce((a,t)=>a+t.goods,0)>0;
   $('tTaxi').textContent=taxiOn?'💎 '+taxiPrice():'позже';
   const ev=[];if(S.trend)ev.push(`🔥 ${good(S.trend).name} ×${CFG.TREND_MULT}`);if(S.day===CFG.BLACK_FRIDAY_DAY)ev.push('🛍×'+CFG.BF_MULT);if((S.loans||[]).length)ev.push('🏦 −$'+loanInterest()+'/круг');
   if(S.jail>0)ev.push(`🚔 ${S.jail} попытки`);
@@ -1609,9 +1635,12 @@ function render(){
   const ready=(S.q?S.q.some(x=>x.done&&!x.claimed):false)||bpClaimable()>0;
   if(S.q){S.q.forEach((q,i)=>{const el=$('q'+i);if(!el)return;el.hidden=!!q.claimed;const done=q.done&&!q.claimed;el.className='qchip'+(done?' done blink':'');el.querySelector('span').textContent=q.claimed?'✓ '+q.text:done?'🎁 Забрать: '+rwText(q.reward):q.text;el.querySelector('i').style.width=(q.claimed?100:Math.min(100,q.prog/q.goal*100))+'%';});}
   $('bTaxi').classList.toggle('blink',taxiOn&&!moving&&myKiosks().length>0&&myKiosks().reduce((a,t)=>a+t.goods,0)===0&&S.hard>=taxiPrice()&&S.rolls>0);
-  $('bShop').innerHTML=`<span>🛒${S.tips.shopOpened||!shopOn?'':'<i class="dot"></i>'}</span><small>${shopOn?'Магазин':'позже'}</small>`;$('bShip').className='dk '+((canShip||canFinish())?'ok':'')+(canFinish()?' blink':'');
+  $('bShop').innerHTML=`<span>🛒${S.tips.shopOpened?'':'<i class="dot"></i>'}</span><small>Магазин</small>`;$('bShip').className='dk '+((canShip||canFinish())?'ok':'')+(canFinish()?' blink':'');
   {const nm=nextMilestone();$('bHub').textContent=`${ready?'🎁 ':'🎫 '}${S.pts}/${nm?nm.pts:CFG.MILESTONES.slice(-1)[0].pts} · #${lbPlace()}`;}$('bHub').className='chip'+(ready?' okc':'');
-  $('tShip').textContent=canFinish()?'итоги':S.parcelSent?(parcelsBehind()>0?'догон':'ушла'):canShip?'собрать':'нет товара';
+  {const hot=canShip&&!S.parcelSent, fin=canFinish();
+   $('tShip').textContent=fin?'итоги':S.parcelSent?(parcelsBehind()>0?'догон':'ушла'):canShip?'отправить':'нет товара';
+   $('bShip').classList.toggle('hot',hot||fin);
+   if(hot&&!S.tips.shipHot){hint('shipHot','📦 Поставка в Союз — главное действие дня: очки за неё и есть билет Джонни. Отправляй раз в день, лучше полную фуру дорогого товара.');}}
   const ks=myKiosks();
   {const tot=ks.reduce((a,t)=>a+t.goods,0),totc=ks.reduce((a,t)=>a+cap(t),0);$('inv').hidden=!ks.length;$('invList').hidden=!invOpen;
    $('invBtn').innerHTML=`<em>📦</em><i><b style="width:${totc?Math.round(tot/totc*100):0}%"></b></i><small>${invOpen?'▾':tot+'/'+totc}</small>`;
@@ -1628,7 +1657,11 @@ function render(){
     else if(ct.type==='wh')tbText='🏬 Costco · закупка';
     else if(ct.type==='bank'&&S.day>=CFG.BANK_DAY)tbText='🏦 Банк'+((S.loans||[]).length?' · долг $'+S.loans.reduce((a,l)=>a+l.principal,0):'');
   }
-  tb.hidden=!tbText; if(tbText)$('tbText').textContent=tbText;
+  tb.hidden=!tbText;
+  if(tbText){$('tbText').textContent=tbText;
+    const need=(ct.type==='kiosk'||ct.type==='biz')&&!ct.owner?ct.price:0;   // на своей точке и в Costco кнопка всегда живая
+    tb.classList.toggle('off',need>0&&S.cash<need);
+    tb.querySelector('b').textContent=need>0?(S.cash<need?'мало $':'купить'):'открыть';}
   draw();
 }
 let pd=null, pinch=null;
