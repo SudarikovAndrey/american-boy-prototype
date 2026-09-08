@@ -801,9 +801,9 @@ async function rollover(){
 }
 
 // ---------- телеметрия: каждое действие — в базу артефакта пачками; активное время — по касаниям ----------
-const VERSION='12.5', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
+const VERSION='12.6', LOGK='americanboy_log', FULLK='americanboy_runlog'; // версия прототипа = версия баланса; при ребалансе поднимать
 function cfgHash(){try{const o=Object.assign({},CFG);['SPEED','TIME_SCALE','ZOOM','ZOOM_MIN','ZOOM_MAX','MOVE_MS','REAL_DAYS'].forEach(k=>delete o[k]);const str=JSON.stringify(o);let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36);}catch(e){return'?';}}
-let TELEMETRY_URL=''; // адрес приёмника партий вне артефакта (веб-приложение Google Apps Script и т.п.)
+let TELEMETRY_URL='https://script.google.com/macros/s/AKfycbwWyE62gs3S_sF3NuT4iAktoNcXkq1uzjJIgO_pCfJjjjnvgN-2W3FOBHsZ2yqSzhCi/exec'; // приёмник партий вне артефакта: Apps Script → таблица «Америкэн бой — партии тестировщиков». Отключить в конкретном браузере: ?tm=
 // приёмник можно задать ссылкой ?tm=<url> — адрес запоминается в браузере, дальше все партии уходят сами
 try{const q=new URLSearchParams(location.search).get('tm'); if(q!==null){q?localStorage.setItem('americanboy_tm',q):localStorage.removeItem('americanboy_tm');} TELEMETRY_URL=localStorage.getItem('americanboy_tm')||TELEMETRY_URL;}catch(e){}
 const TMQ='americanboy_tmq'; // очередь неотправленного: интернет пропал — уйдёт при следующей отправке
