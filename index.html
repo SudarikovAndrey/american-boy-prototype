@@ -283,7 +283,7 @@ const CFG = {
   // v12.2: пакеты вдвое меньше — до этого 99 ₽ давали +250…+320 очков (12 очков за 💎, половина недели умного F2P). Тиры — RU-стор: 99 / 249 / 499 / 999.
   // Ориентиры LiveOps в похожих играх (Monopoly GO, Coin Master, Dice Dreams, Board Kings; RU-локализация Playrix): вход $0,99–1,99 → 99–149 ₽, средний оффер $2,99–4,99 → 249–449 ₽, пасс $4,99 → 449–499 ₽ (для RU-аудитории берём 299), кит $19,99+ → 1490+ ₽
   OFFERS:{starter:{rub:99,hard:10}, rush:{rub:249,rolls:30,hard:10,fromDay:5,minPts:150,maxPts:699}, latePlus:{rub:149,rolls:20}}, // контекстные офферы: стартовый пакет при нехватке (H1), «Рывок» к 700 в дни 5–6 (H3), пакет-плюс опоздавшим (H6)
-  LOAN_GRACE:1,                // прощённых просрочек на неделю: первый уход в минус — предупреждение без страйка
+  LOAN_GRACE:1,                // одна прощённая просрочка за ивент. v12.3: страйк ставится не на банке, а в полночь — «не выбрался из минуса до конца дня»; на банке коллекторы только предупреждают
   SHOP_SOFT:[{mult:1,hard:3},{mult:3,hard:8},{mult:8,hard:20}], // нал за харду: сумма = mult × средняя цена точки лучшего открытого района // цены: сверхурочные, откуп от полиции, такси, место в контейнере, район ($ за 1💎)
   START_CASH: 250,
   EVENT_START:null,            // 'YYYY-MM-DD' — дата старта ивента; новая партия начинается с текущего дня ивента (null — с дня 1)
@@ -346,6 +346,7 @@ const CFG = {
     {laps:10, floor:1000, ltv:0.8, rate:0.05, strikes:2, hard:10, name:'Рисковый'},
     {laps:20, floor:3000, ltv:1.0, rate:0.08, strikes:2, hard:30, name:'Кабальный'},
   ],
+  DEBT_SHARE:0.35,            // потолок долговой нагрузки: суммарный процент за круг не больше 35% чистой прибыли за круг
   SEIZE_RATIO:1.5, // при дефолте коллекторы забирают точки, начиная с лучшей, пока их стоимость не покроет долг × SEIZE_RATIO
   TAXI_PER_DAY:0,              // бесплатных поездок нет: такси за харду, каждая следующая за день вдвое дороже
   POLICE:{dayFine:[20,60,150,400,1000,2500,6000], lapShare:0.5, attempts:3}, // штраф = lapShare × чистая прибыль за круг (точки: продажи×маржа, бизнесы: сбор), не меньше minFine×день и не больше cashCap×наличных
@@ -621,7 +622,7 @@ async function offerOpen(zi){
 function spendHard(n,to){if((S.hard||0)<n){toast('Не хватает 💎');track('hard_short',{need:n});return false;}track('hard_spend',{n});fly('💎',AT.hard(),to||AT.card(),Math.min(n,4),{pulse:'sHard'});S.hard-=n;render();return true;}
 function pay(m){m=Math.max(0,Math.min(S.cash,Math.round(m)));if(m>0)fly('💵',AT.cash(),AT.pot(),flyN(m));S.cash-=m;S.pot+=m;return m;} // все штрафы падают в копилку
 // штраф полиции берут целиком: не хватает — уходишь в минус, но не глубже половины штрафа, чтобы выбраться за круг-другой
-function payFine(m){m=Math.round(m);const floorCash=-Math.round(m*0.5);const take=Math.min(m,Math.max(0,S.cash-floorCash));
+function payFine(m){m=Math.round(m);const floorCash=-Math.round(Math.min(m*0.5,Math.max(20,lapNet()*0.5)));const take=Math.min(m,Math.max(0,S.cash-floorCash));
   S.cash-=take;S.pot+=take;if(take>0)fly('💵',AT.cash(),AT.pot(),flyN(take));
   if(take<m)log(`Штраф $${m}, а в кармане было меньше: ушёл в минус на $${-S.cash}.`);
   return take;}
@@ -717,7 +718,13 @@ function investGaps(){const g=[];
 function loanCollateral(){return S.tiles.filter(t=>(t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)).reduce((a,t)=>a+assetValue(t),0);}
 function loanAmount(i){const L=CFG.LOANS[i];const cap=Math.floor(loanCollateral()/CFG.SEIZE_RATIO*L.ltv/10)*10;
   const base=lapPotential()*L.laps, gaps=investGaps(), want=gaps.length?Math.max(...gaps)*1.15:0;
-  let a=Math.max(L.floor,base,Math.min(want,cap)); a=Math.min(a,Math.max(L.floor,cap)); return Math.round(a/10)*10;}
+  // банк смотрит на платёжеспособность: суммарный процент по всем кредитам не больше DEBT_SHARE прибыли за круг —
+  // иначе третий кредит под 8% съедал больше, чем игрок зарабатывает за круг, и дефолт был предрешён
+  const room=loanRoom(i);
+  let a=Math.max(L.floor,base,Math.min(want,cap)); a=Math.min(a,Math.max(L.floor,cap),Math.max(L.floor,room)); return Math.round(a/10)*10;}
+// сколько банк готов дать по платёжеспособности: суммарный процент за круг не больше DEBT_SHARE чистой прибыли за круг
+function loanRoom(i){const L=CFG.LOANS[i];return Math.max(0,Math.round((lapNet()*CFG.DEBT_SHARE-loanInterest())/L.rate/10)*10);}
+function canLoan(i){return i<CFG.LOANS.length&&loanRoom(i)>=CFG.LOANS[i].floor&&loanCollateral()/CFG.SEIZE_RATIO*CFG.LOANS[i].ltv>=CFG.LOANS[i].floor;}
 function softForHard(h){ // сколько нала дал бы магазин за столько же харды (лучший подходящий пакет)
   const pk=CFG.SHOP_SOFT.slice().sort((a,b)=>b.hard-a.hard).find(x=>x.hard<=h)||CFG.SHOP_SOFT[0];return Math.round(softPackAmount(pk.mult)*h/pk.hard);}
 function assetValue(t){if(t.type==='biz'){let v=t.price;for(let l=1;l<t.level;l++)v+=Math.round(t.price*CFG.BIZ.upgradeMult*l);for(let k=1;k<(t.tier||1);k++)v+=CFG.EVOLVE_COST[k];return v;}
@@ -902,7 +909,7 @@ async function roll(){
     S.pos=to;
     const t=S.tiles[S.pos];
     if(S.pos===0) await lapDone(dbl);
-    if(t.type==='bank'&&(S.loans||[]).length){const missed=loanCharge();if(missed){if(S.seized)await seizeModal();else if((S.loans||[]).length)await bankThreat();if(!last)break;}} // прошёл банк — заплатил процент; просрочка — коллекторы тормозят; конфискация — своё окно
+    if(t.type==='bank'&&(S.loans||[]).length){const neg=loanCharge();if(neg){await bankThreat();if(!last)break;}} // прошёл банк — заплатил процент; ушёл в минус — коллекторы тормозят и предупреждают
     if((t.type==='kiosk'||t.type==='biz')&&t.owner&&unlocked(t)){
       const biz=t.type==='biz', f=Math.round(fee(t)*(biz&&last?CFG.BIZ.landMult:1)*boostOf(t));
       S.cash+=f;S.stat.earned+=f;S.dstat.earned+=f;qProg('earn',f);
@@ -940,20 +947,23 @@ async function lapDone(dbl){
 }
 // проценты списываются при каждом проходе клетки банка (не на старте): прошёл банк — заплатил
 // процент списывается всегда: нечем платить — нал уходит в минус, и это просрочка; в минусе ничего не купить, пока не отобьёшься
-function loanCharge(){ let missed=false;
-  const i=loanInterest(); if(i<=0)return false;
+function loanCharge(){ const i=loanInterest(); if(i<=0)return false;
   S.cash-=i;S.stat.interest=(S.stat.interest||0)+i;fly('💵',AT.cash(),AT.tile(20),flyN(i));float(20,'−$'+i+' банк','#ef5350');track('loan_interest',{amt:i,cash:S.cash});
-  if(S.cash<0){missed=true;S.seized=null;
-    if((S.loanGrace===undefined?CFG.LOAN_GRACE:S.loanGrace)>0){S.loanGrace=(S.loanGrace===undefined?CFG.LOAN_GRACE:S.loanGrace)-1;S.graced=true;track('loan_grace',{cash:S.cash});render();return true;} // первая просрочка недели прощается: предупреждение без страйка
-    S.graced=false;
-    for(const l of (S.loans||[]).slice()){l.strikes++;log(`Ушёл в минус по кредиту «${l.name}»: $${S.cash} (просрочка ${l.strikes}/${l.maxStrikes}).`);track('loan_strike',{tier:l.tier,strikes:l.strikes,cash:S.cash});
-      if(l.strikes>=l.maxStrikes){const mine=seizePlan(l.principal);
-        const names=mine.map(m=>m.type==='biz'?bizName(m):pointName(m)+' '+good(m.good).icon);
-        const seizedVal=mine.reduce((a,m)=>a+assetValue(m),0);
-        mine.forEach(m=>{const nm=m.type==='biz'?bizName(m):name(m);m.owner=null;m.level=0;m.capLvl=1;m.salesLvl=1;m.goods=0;m.tier=1;m.price=m.price0||m.price;if(m.type==='kiosk'&&m.base)m.good=m.base;log(`Коллекторы забрали ${nm}.`);});
-        track('loan_default',{tier:l.tier,principal:l.principal,seized:mine.length,tiles:mine.map(m=>m.i),value:seizedVal});S.seized=S.seized||[];S.seized.push({loan:l.name,principal:l.principal,names,value:seizedVal});
-        S.loans=S.loans.filter(x=>x!==l);if(S.cash<0)S.cash=0;}}}
-  render(); return missed;
+  render(); return S.cash<0; // минус на банке сам по себе не карается: коллекторы предупреждают, просрочка ставится в полночь
+}
+// полночь: не выбрался из минуса — просрочка по каждому кредиту; вторая просрочка — конфискация
+function loanMidnight(){ if(!(S.loans||[]).length||S.cash>=0)return;
+  if((S.loanGrace===undefined?CFG.LOAN_GRACE:S.loanGrace)>0){S.loanGrace=(S.loanGrace===undefined?CFG.LOAN_GRACE:S.loanGrace)-1;S.graced=true;track('loan_grace',{cash:S.cash});log(`День закончился в минусе $${-S.cash}. Банк простил — один раз за ивент.`);return;}
+  S.graced=false;S.seized=null;
+  for(const l of (S.loans||[]).slice()){l.strikes++;log(`День закончился в минусе: просрочка по «${l.name}» (${l.strikes}/${l.maxStrikes}).`);track('loan_strike',{tier:l.tier,strikes:l.strikes,cash:S.cash});
+    if(l.strikes>=l.maxStrikes){const mine=seizePlan(l.principal);
+      const names=mine.map(m=>m.type==='biz'?bizName(m):pointName(m)+' '+good(m.good).icon);
+      const seizedVal=mine.reduce((a,m)=>a+assetValue(m),0);
+      mine.forEach(m=>{const nm=m.type==='biz'?bizName(m):name(m);m.owner=null;m.level=0;m.capLvl=1;m.salesLvl=1;m.goods=0;m.tier=1;m.price=m.price0||m.price;if(m.type==='kiosk'&&m.base)m.good=m.base;log(`Коллекторы забрали ${nm}.`);});
+      track('loan_default',{tier:l.tier,principal:l.principal,seized:mine.length,tiles:mine.map(m=>m.i),value:seizedVal});
+      S.seized=S.seized||[];S.seized.push({loan:l.name,principal:l.principal,names,value:seizedVal});
+      S.loans=S.loans.filter(x=>x!==l);if(S.cash<0)S.cash=0;}}
+  render();
 }
 
 // ---------- приземление ----------
@@ -1311,7 +1321,7 @@ async function bankThreat(){
   track('bank_threat',{cash:S.cash,interest:loanInterest(),left});
   toast('🏦 Коллекторы: «Стоять!»',2500);
   const v=await modal(`<h2>🏦 Chase Manhattan <small>коллекторы</small></h2>
-    <p class="t">«Притормози. Процент $${loanInterest()} списали, и ты в минусе: $${S.cash}. ${S.graced?'На этот раз прощаем — один раз за неделю. Следующий минус — просрочка.':'Это просрочка. '+(()=>{const k=seizePlan(worst.principal).length,w=k===1?'лучшую точку':k+' лучшие точки';return left<=1?`Ещё одна — забираем ${w}.`:`Осталось ${left} просрочки до того, как заберём ${w}.`;})()}»</p>
+    <p class="t">«Притормози. Процент $${loanInterest()} списали, и ты в минусе: $${-S.cash}. Выберись в плюс до полуночи — и обойдётся. ${(()=>{const k=seizePlan(worst.principal).length,w=k===1?'лучшую точку':k+' лучшие точки';return left<=1?`Иначе просрочка, и она последняя: заберём ${w}.`:`Иначе просрочка, до конфискации их ${left}.`;})()}»</p>
     <div class="row"><span class="n">Долг</span><span class="v">$${S.loans.reduce((a,l)=>a+l.principal,0)}</span></div>
     <div class="row"><span class="n">Процент за проход банка</span><span class="v">$${loanInterest()}</span></div>
     <p>Пока в минусе — ничего не купишь. Выйти в плюс до следующего прохода банка: продажи на старте, касса бизнесов, погашение долга.</p>`,
@@ -1322,11 +1332,11 @@ async function bank(remote){ // remote — открыт тапом по клет
   if(S.day<CFG.BANK_DAY){toast(`Банк откроется в день ${CFG.BANK_DAY}.`);return;}
   S.loans=S.loans||[];
   const draw=()=>{
-    const n=S.loans.length, overdue=S.loans.some(l=>l.strikes>0), canTake=!remote&&S.loanLandN!==S.landN&&!overdue, next=(n<CFG.LOANS.length&&canTake)?CFG.LOANS[n]:null, amt=next?loanAmount(n):0;
+    const n=S.loans.length, overdue=S.loans.some(l=>l.strikes>0), afford=canLoan(n), canTake=!remote&&S.loanLandN!==S.landN&&!overdue&&afford, next=(n<CFG.LOANS.length&&canTake)?CFG.LOANS[n]:null, amt=next?loanAmount(n):0;
     $('card').innerHTML=`<h2>🏦 Chase Manhattan <small>${n?n+' из 3 кредитов':'кредиты'}</small>${helpBtn('Деньги сразу, процент списывается каждый раз, когда проходишь банк — нечем платить, уйдёшь в минус, это просрочка. Две просрочки — коллекторы забирают точки на 150% долга. Каждый следующий кредит дороже и рискованнее.')}</h2>
       ${S.loans.map((l,i)=>`<div class="row"><span class="n">${l.name}<small>${Math.round(l.rate*100)}% за круг · $${Math.round(l.principal*l.rate)} · просрочек ${l.strikes}/${l.maxStrikes}</small></span><span class="v">$${l.principal}</span><button class="sm ok" data-repay="${i}" ${S.cash<l.principal?'disabled':''}>Погасить</button></div>`).join('')}
       ${n?`<div class="row"><span class="n">Итого процентов за круг</span><span class="v">$${loanInterest()}</span></div><div class="row"><span class="n">При дефолте заберут</span><span class="v">${seizePlan(S.loans.reduce((a,l)=>a+l.principal,0)).length} ${(()=>{const k=seizePlan(S.loans.reduce((a,l)=>a+l.principal,0)).length;return k===1?'точку':k<5?'точки':'точек';})()}</span></div>`:''}
-      ${next?`<div class="row"><span class="n">${next.name} кредит<small>${Math.round(next.rate*100)}% за круг · −$${Math.round(amt*next.rate)} при проходе банка · залог до $${Math.floor(loanCollateral()/CFG.SEIZE_RATIO*next.ltv/10)*10}</small></span><button class="sm ${n>=2?'bad':'hard'}" id="lTake" ${S.hard<next.hard?'disabled':''}>Взять $${amt}<small>💎 ${next.hard}</small></button></div>`:(n>=CFG.LOANS.length?'<p>Больше не дают.</p>':overdue?'<p class="t">С просрочкой новый кредит не дают.</p>':remote?'<p>Взять — остановившись на банке. Погасить — в любой момент.</p>':'<p>Один кредит за визит.</p>')}
+      ${next?`<div class="row"><span class="n">${next.name} кредит<small>${Math.round(next.rate*100)}% за круг · −$${Math.round(amt*next.rate)} при проходе банка · залог до $${Math.floor(loanCollateral()/CFG.SEIZE_RATIO*next.ltv/10)*10}</small></span><button class="sm ${n>=2?'bad':'hard'}" id="lTake" ${S.hard<next.hard?'disabled':''}>Взять $${amt}<small>💎 ${next.hard}</small></button></div>`:(n>=CFG.LOANS.length?'<p>Больше не дают.</p>':overdue?'<p class="t">С просрочкой новый кредит не дают.</p>':!afford?`<p class="t">Банк смотрит на доход: с такой прибылью за круг ты не потянешь ещё один процент. Подними обороты — дадут.</p>`:remote?'<p>Взять — остановившись на банке. Погасить — в любой момент.</p>':'<p>Один кредит за визит.</p>')}
       <div class="mbtns"><button class="sec" id="lNo">Закрыть</button></div>`;
     $('card').querySelectorAll('button[data-repay]').forEach(b=>b.onclick=()=>{const l=S.loans[+b.dataset.repay];fly('💵',AT.cash(),AT.tile(20),flyN(l.principal));S.cash-=l.principal;S.loans.splice(+b.dataset.repay,1);track('loan_repay',{tier:l.tier,amt:l.principal});log(`Погасил кредит «${l.name}» $${l.principal}.`);render();draw();});
     const tk=$('lTake'); if(tk)tk.onclick=()=>{if(!spendHard(next.hard,AT.tile(20)))return;fly('💵',AT.tile(20),AT.cash(),flyN(amt),{pulse:'sCash'});S.loans.push({tier:n+1,name:next.name,principal:amt,rate:next.rate,strikes:0,maxStrikes:next.strikes});S.cash+=amt;S.loanLandN=S.landN;track('loan_take',{tier:n+1,amt,rate:next.rate});log(`Взял кредит «${next.name}» $${amt} под ${Math.round(next.rate*100)}% за круг.`);render();draw();};
@@ -1364,9 +1374,10 @@ async function sleep(auto){
           '<div class="row"><span class="n">Все рубежи взяты<small>дальше — место в топе Бруклина</small></span><span class="v">#'+lbPlace()+'</span></div>');})()}
     <div class="row"><span class="n">⏱ Игра сегодня</span><span class="v">${minTxt((S.dayMs||{})[S.day])}</span></div>
     ${S.q&&S.q.some(q=>q.done&&!q.claimed)?`<div class="row"><span class="n">🎁 Незабранные награды<small>сгорят с началом нового дня</small></span><button class="sm ok blink" id="dClaim">Забрать</button></div>`:''}`,[{t:'Дальше',v:1,cls:'ok'}],{sticky:false});
+  loanMidnight(); if(S.seized)await seizeModal();
   track('day_end',{d,dayMs:(S.dayMs||{})[S.day]||0,points:myKiosks().length,opened:S.opened.filter(Boolean).length,q:S.q.map(q=>({id:q.id,done:q.done,claimed:q.claimed}))});
   S.dstat={earned:0,sold:0,pts:0,bought:0};(S.ptsHist=S.ptsHist||[]).push(S.pts);if(S.day===2)setTimeout(()=>hint('twoSessions','Ходы восстанавливаются за несколько часов. Второй заход вечером почти удваивает очки за день — самые сильные игроки заходят дважды.'),800);
-  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY+(S.carryRolls||0);S.carryRolls=0;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.jail=0;S.extraSlots=0;S.extraSlotsSoft=0;newQuest();
+  S.day++;if(!CFG.REAL_DAYS||!auto)S.rolls=CFG.ROLLS_PER_DAY+(S.carryRolls||0);S.carryRolls=0;S.overtime=0;S.dayDate=dateKey();S.parcelSent=false;S.trend=null;S.taxi=CFG.TAXI_PER_DAY;S.taxiRides=0;S.jail=0;S.extraSlots=0;S.extraSlotsSoft=0;S.loanGrace=CFG.LOAN_GRACE;newQuest();
   if(S.day>CFG.DAYS)return finish();
   const msgs=[`☀️ День ${S.day}.`];
   CFG.ZONES.forEach((z,zi)=>{if(z.day<=S.day&&!S.opened[zi])msgs.push(openZone(zi,0));});
